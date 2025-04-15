@@ -1,187 +1,203 @@
 package com.example.autosmart;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.widget.Toast;
-
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.autosmart.databinding.ActivityLogInBinding;
-import com.example.autosmart.databinding.ActivityMainBinding;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-
+import com.google.android.gms.common.SignInButton;
 
 
 public class LoginActivity extends AppCompatActivity {
 
-    private FirebaseAuth auth;
-    private GoogleSignInClient googleSignInClient;
-    private ActivityLogInBinding binding;
+    private EditText etEmail, etPassword;
+    private Button btnLogin, btnRegister;
+    private FirebaseAuth mAuth;
+    private SignInButton btnGoogleSignIn;
 
-    // Lanzador para el inicio de sesión con Google
-    private final ActivityResultLauncher<Intent> googleSignInLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-                    new ActivityResultCallback<ActivityResult>() {
-                        @Override
-                        public void onActivityResult(ActivityResult result) {
-                            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
-                                try {
-                                    GoogleSignInAccount account = task.getResult(ApiException.class);
-                                    if (account != null) {
-                                        firebaseAuthWithGoogle(account.getIdToken());
-                                    }
-                                } catch (ApiException e) {
-                                    Toast.makeText(LoginActivity.this, "Error al iniciar sesión con Google: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        }
-                    });
+    // Cliente de Google Sign-In y código de solicitud
+    private GoogleSignInClient mGoogleSignInClient;
+    private static final int RC_SIGN_IN = 9001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityLogInBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        setContentView(R.layout.activity_login);
 
-        // Si ya hay un usuario autenticado, redirige a MainActivity
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-            finish();
-            return;
-        }
+        // Inicializar Firebase Auth
+        mAuth = FirebaseAuth.getInstance();
 
-        // Inicializar FirebaseAuth
-        auth = FirebaseAuth.getInstance();
+        // Referencias a las vistas
+        etEmail = findViewById(R.id.etEmail);
+        etPassword = findViewById(R.id.etPassword);
+        btnLogin = findViewById(R.id.btnLogin);
+        btnRegister = findViewById(R.id.btnRegister);
+        btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn);
 
         // Configurar Google Sign-In
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.client_id))
+                // Asegúrate de que 'default_web_client_id' esté definido en strings.xml
+                .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
-        googleSignInClient = GoogleSignIn.getClient(this, gso);
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
-        // Botón para iniciar sesión con Google
-        binding.signIn.setOnClickListener(v -> {
-            Intent signInIntent = googleSignInClient.getSignInIntent();
-            googleSignInLauncher.launch(signInIntent);
+        // Listener para Login tradicional
+        btnLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String email = etEmail.getText().toString().trim();
+                String password = etPassword.getText().toString().trim();
+                if (!email.isEmpty() && !password.isEmpty()) {
+                    signInUser(email, password);
+                } else {
+                    Toast.makeText(LoginActivity.this,
+                            "Por favor, llena todos los campos",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
         });
 
-        // Botón de registro por email
-        binding.registerButton.setOnClickListener(v -> registerWithEmail());
+        // Listener para Registro
+        btnRegister.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String email = etEmail.getText().toString().trim();
+                String password = etPassword.getText().toString().trim();
+                if (!email.isEmpty() && !password.isEmpty()) {
+                    registerUser(email, password);
+                } else {
+                    Toast.makeText(LoginActivity.this,
+                            "Por favor, llena todos los campos",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
-        // Botón de login por email
-        binding.loginButton.setOnClickListener(v -> loginWithEmail());
+        // Listener para Google Sign-In
+        btnGoogleSignIn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                signInWithGoogle();
+            }
+        });
     }
 
-    // Registro con email y contraseña
-    private void registerWithEmail() {
-        String email = binding.emailEditText.getText().toString().trim();
-        String password = binding.passwordEditText.getText().toString().trim();
-
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show();
-            return;
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Si el usuario ya está autenticado, se salta el login
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            updateUI(currentUser);
         }
-        if (!isPasswordSecure(password)) {
-            Toast.makeText(this, "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.", Toast.LENGTH_LONG).show();
-            return;
-        }
+    }
 
-        auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = auth.getCurrentUser();
-                        if (user != null) {
-                            // Guardar algunos datos en SharedPreferences
-                            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-                            SharedPreferences.Editor editor = prefs.edit();
-                            editor.putString("correo", user.getEmail());
-                            editor.putString("USER_ID", user.getUid());
-                            editor.apply();
-                            Toast.makeText(LoginActivity.this, "Registro exitoso", Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                            finish();
+    // Método para inicio de sesión tradicional con email y contraseña
+    private void signInUser(String email, String password) {
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            updateUI(user);
+                        } else {
+                            Toast.makeText(LoginActivity.this,
+                                    "Error en inicio de sesión: " + task.getException().getMessage(),
+                                    Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(LoginActivity.this, "Error en el registro: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    // Login con email y contraseña
-    private void loginWithEmail() {
-        String email = binding.emailEditText.getText().toString().trim();
-        String password = binding.passwordEditText.getText().toString().trim();
-
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = auth.getCurrentUser();
-                        if (user != null) {
-                            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-                            SharedPreferences.Editor editor = prefs.edit();
-                            editor.putString("correo", user.getEmail());
-                            editor.putString("USER_ID", user.getUid());
-                            editor.apply();
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                            finish();
+    // Método para registrar un nuevo usuario
+    private void registerUser(String email, String password) {
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            updateUI(user);
+                        } else {
+                            Toast.makeText(LoginActivity.this,
+                                    "Error en registro: " + task.getException().getMessage(),
+                                    Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(LoginActivity.this, "Error al iniciar sesión: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    // Autenticación con Google usando el token recibido
+    // Iniciar el flujo de Google Sign-In
+    private void signInWithGoogle() {
+        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    // Procesar el resultado de Google Sign-In
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task =
+                    GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                // El inicio de sesión con Google fue exitoso, autentica con Firebase
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                firebaseAuthWithGoogle(account.getIdToken());
+            } catch (ApiException e) {
+                Toast.makeText(this, "Fallo al iniciar sesión con Google: " + e.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // Autenticación en Firebase usando el token de Google
     private void firebaseAuthWithGoogle(String idToken) {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
-        auth.signInWithCredential(credential)
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = auth.getCurrentUser();
-                        if (user != null) {
-                            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-                            SharedPreferences.Editor editor = prefs.edit();
-                            editor.putString("correo", user.getEmail());
-                            editor.putString("nombre", user.getDisplayName());
-                            editor.putString("foto", (user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : "");
-                            editor.putString("USER_ID", user.getUid());
-                            editor.apply();
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                            finish();
+        mAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            updateUI(user);
+                        } else {
+                            Toast.makeText(LoginActivity.this,
+                                    "Fallo en la autenticación con Firebase: " + task.getException().getMessage(),
+                                    Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(LoginActivity.this, "Error al autenticar con Google", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    // Valida que la contraseña sea segura
-    private boolean isPasswordSecure(String password) {
-        return password.length() >= 8 &&
-                password.matches(".*[A-Z].*") &&  // Al menos una mayúscula
-                password.matches(".*[a-z].*") &&  // Al menos una minúscula
-                password.matches(".*\\d.*") &&    // Al menos un número
-                password.matches(".*[!@#$%^&*].*"); // Al menos un carácter especial
+    // Método que redirige a la pantalla principal si la autenticación es exitosa
+    private void updateUI(FirebaseUser user) {
+        if (user != null) {
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
 }

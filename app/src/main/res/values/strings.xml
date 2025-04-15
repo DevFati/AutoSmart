@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">AutoSmart</string>
-    <string name="client_id">175882546256-ntv5qcc3u4fm664in6k04ldllgobrh74.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">230560220816-ch74l7u4e858gqdhgngdk28npo3d1knr.apps.googleusercontent.com</string>
+    <string name="email">Email\n</string>
+    <string name="contrasenia">Contraseña</string>
+    <string name="iniciar_sesion">Iniciar Sesión</string>
+    <string name="registrarse">REGISTRARSE</string>
 
 </resources>

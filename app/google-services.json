@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "175882546256",
-    "project_id": "autosmart-3495f",
-    "storage_bucket": "autosmart-3495f.firebasestorage.app"
+    "project_number": "230560220816",
+    "project_id": "autosmart-6e3c3",
+    "storage_bucket": "autosmart-6e3c3.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:175882546256:android:a9d03987372e82f00bb555",
+        "mobilesdk_app_id": "1:230560220816:android:aa44680c6bc67b38573a15",
         "android_client_info": {
           "package_name": "com.example.autosmart"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDEHnizksK6t6FaUR2EmfAGUrzKBP0hJTM"
+          "current_key": "AIzaSyAXmjEz_ojo9cWZojXoqpS5vEmcNLidCB4"
         }
       ],
       "services": {
