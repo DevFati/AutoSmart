@@ -29,6 +29,7 @@ import com.google.android.gms.common.SignInButton;
 
 public class LoginActivity extends AppCompatActivity {
 
+
     private EditText etEmail, etPassword;
     private Button btnLogin, btnRegister;
     private FirebaseAuth mAuth;
