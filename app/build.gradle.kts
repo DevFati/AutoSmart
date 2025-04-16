@@ -68,4 +68,16 @@ dependencies {
 
     implementation ("com.google.firebase:firebase-analytics:17.2.1")
     implementation ("com.google.firebase:firebase-database:19.2.0")
+
+
+
+
+    // Room components
+    val room_version="2.5.2"
+    implementation ("androidx.room:room-runtime:$room_version")
+
+    annotationProcessor ("androidx.room:room-compiler:$room_version")
+
+
+
 }
