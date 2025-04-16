@@ -2,10 +2,15 @@ package com.example.autosmart;
 
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.room.Room;
+
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.navigation.NavigationView;
 
@@ -32,6 +37,19 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
+
+
+        View headerView = navigationView.getHeaderView(0);
+        TextView tvUserName = headerView.findViewById(R.id.user_name);
+        TextView tvUserEmail = headerView.findViewById(R.id.user_email);
+
+        AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+        UserEntity storedUser = db.userDao().getUser();
+        if (storedUser != null) {
+            tvUserName.setText(storedUser.getName());
+            tvUserEmail.setText(storedUser.getEmail());
+        }
+
 
         // Carga el fragmento Dashboard por defecto
         if (savedInstanceState == null) {

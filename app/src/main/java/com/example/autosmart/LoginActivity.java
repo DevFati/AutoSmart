@@ -2,6 +2,7 @@ package com.example.autosmart;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.room.Room;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -109,10 +110,7 @@ public class LoginActivity extends AppCompatActivity {
         // Si el usuario ya está autenticado, se salta el login
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
-            // El usuario está autenticado, redirige al Dashboard
-            Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
-            startActivity(intent);
-            finish();  // Esto cierra la actividad de inicio de sesión para que el usuario no pueda volver a ella.
+            updateUI(currentUser);
         }
     }
 
@@ -196,12 +194,31 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    // Método que redirige a la pantalla principal si la autenticación es exitosa
     private void updateUI(FirebaseUser user) {
         if (user != null) {
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            // Obtenemos el displayName; si es nulo o vacío, usamos el correo
+            String displayName = user.getDisplayName();
+            if (displayName == null || displayName.isEmpty()) {
+                displayName = user.getEmail();
+            }
+
+            // Obtenemos la instancia de la base de datos usando el singleton
+            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+
+            // Consultamos si ya existe un usuario almacenado en la BBDD
+            UserEntity storedUser = db.userDao().getUser();
+            // Si no existe, lo insertamos; de lo contrario, dejamos el registro tal cual.
+            if (storedUser == null) {
+                UserEntity localUser = new UserEntity(displayName, user.getEmail());
+                db.userDao().insertUser(localUser);
+            }
+
+            // Redirigimos al Dashboard
+            Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
             startActivity(intent);
             finish();
         }
     }
+
+
 }
