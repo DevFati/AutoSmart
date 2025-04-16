@@ -1,24 +1,31 @@
 package com.example.autosmart;
 
-import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
 
 public class MainActivity extends AppCompatActivity {
+
+    // Tiempo de espera en milisegundos (ej. 3 segundos)
+    private static final int SPLASH_TIME_OUT = 3000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
+        // Establece el layout de la pantalla de bienvenida
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+        // Utiliza un Handler para ejecutar el código que redirige después del tiempo indicado
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Inicia la LoginActivity
+                Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                startActivity(intent);
+                // Finaliza MainActivity para que el usuario no pueda volver pulsando "atrás"
+                finish();
+            }
+        }, SPLASH_TIME_OUT);
     }
 }
