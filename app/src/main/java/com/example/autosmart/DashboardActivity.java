@@ -1,5 +1,6 @@
 package com.example.autosmart;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -11,8 +12,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.room.Room;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class DashboardActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -88,9 +93,25 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         } else if (id == R.id.nav_settings) {
             // Lanza la Activity o fragmento de ajustes
         } else if (id == R.id.nav_logout) {
-            // Implementa el cierre de sesión
-            // Por ejemplo: FirebaseAuth.getInstance().signOut();
-            // Redirige al LoginActivity y finaliza esta Activity
+            // Cierra la sesión en Firebase
+            FirebaseAuth.getInstance().signOut();
+
+            // Cierra la sesión en Google
+            GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build();
+            GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
+            googleSignInClient.signOut();
+
+            // Borra el usuario almacenado en la base de datos local
+            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+            db.userDao().deleteAll();
+
+            // Redirige al LoginActivity y finaliza DashboardActivity
+            Intent intent = new Intent(DashboardActivity.this, LoginActivity.class);
+            startActivity(intent);
+            finish();
         }
 
         // Cierra el menú lateral

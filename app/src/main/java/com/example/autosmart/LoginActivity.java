@@ -206,12 +206,10 @@ public class LoginActivity extends AppCompatActivity {
             AppDatabase db = AppDatabase.getInstance(getApplicationContext());
 
             // Consultamos si ya existe un usuario almacenado en la BBDD
-            UserEntity storedUser = db.userDao().getUser();
-            // Si no existe, lo insertamos; de lo contrario, dejamos el registro tal cual.
-            if (storedUser == null) {
-                UserEntity localUser = new UserEntity(displayName, user.getEmail());
-                db.userDao().insertUser(localUser);
-            }
+            UserEntity localUser = new UserEntity(user.getUid(), displayName, user.getEmail());
+
+            db.userDao().insertUser(localUser);
+
 
             // Redirigimos al Dashboard
             Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);

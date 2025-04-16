@@ -12,4 +12,8 @@ public interface UserDao {
 
     @Query("SELECT * FROM user LIMIT 1")
     UserEntity getUser();
+
+    @Query("DELETE FROM user")
+    void deleteAll();
+
 }
