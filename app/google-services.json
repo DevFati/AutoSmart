@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "230560220816",
+    "project_id": "autosmart-6e3c3",
+    "storage_bucket": "autosmart-6e3c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:230560220816:android:aa44680c6bc67b38573a15",
+        "android_client_info": {
+          "package_name": "com.example.autosmart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXmjEz_ojo9cWZojXoqpS5vEmcNLidCB4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
