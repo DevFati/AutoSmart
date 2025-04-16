@@ -1,13 +1,23 @@
 package com.example.autosmart;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.room.Room;
+
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class DashboardActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -32,6 +42,19 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
+
+
+        View headerView = navigationView.getHeaderView(0);
+        TextView tvUserName = headerView.findViewById(R.id.user_name);
+        TextView tvUserEmail = headerView.findViewById(R.id.user_email);
+
+        AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+        UserEntity storedUser = db.userDao().getUser();
+        if (storedUser != null) {
+            tvUserName.setText(storedUser.getName());
+            tvUserEmail.setText(storedUser.getEmail());
+        }
+
 
         // Carga el fragmento Dashboard por defecto
         if (savedInstanceState == null) {
@@ -70,9 +93,25 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         } else if (id == R.id.nav_settings) {
             // Lanza la Activity o fragmento de ajustes
         } else if (id == R.id.nav_logout) {
-            // Implementa el cierre de sesión
-            // Por ejemplo: FirebaseAuth.getInstance().signOut();
-            // Redirige al LoginActivity y finaliza esta Activity
+            // Cierra la sesión en Firebase
+            FirebaseAuth.getInstance().signOut();
+
+            // Cierra la sesión en Google
+            GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build();
+            GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
+            googleSignInClient.signOut();
+
+            // Borra el usuario almacenado en la base de datos local
+            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+            db.userDao().deleteAll();
+
+            // Redirige al LoginActivity y finaliza DashboardActivity
+            Intent intent = new Intent(DashboardActivity.this, LoginActivity.class);
+            startActivity(intent);
+            finish();
         }
 
         // Cierra el menú lateral
