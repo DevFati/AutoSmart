@@ -109,7 +109,10 @@ public class LoginActivity extends AppCompatActivity {
         // Si el usuario ya está autenticado, se salta el login
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
-            updateUI(currentUser);
+            // El usuario está autenticado, redirige al Dashboard
+            Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
+            startActivity(intent);
+            finish();  // Esto cierra la actividad de inicio de sesión para que el usuario no pueda volver a ella.
         }
     }
 
