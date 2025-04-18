@@ -12,10 +12,25 @@ import java.util.List;
 
 public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleViewHolder> {
 
+    public interface OnItemLongClickListener {
+        /**
+         * @param vehicle  El vehículo sobre el que se hizo long click.
+         * @param position Posición en el adapter.
+         * @return true si el evento fue consumido.
+         */
+        boolean onItemLongClick(Vehicle vehicle, int position);
+    }
+
+
     private List<Vehicle> vehicleList;
+    private OnItemLongClickListener longClickListener;
 
     public VehicleAdapter(List<Vehicle> vehicleList) {
         this.vehicleList = vehicleList;
+    }
+
+    public void setOnItemLongClickListener(OnItemLongClickListener listener) {
+        this.longClickListener = listener;
     }
 
     @NonNull
@@ -32,6 +47,13 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
         // Obtiene el vehículo correspondiente y lo vincula al ViewHolder
         Vehicle vehicle = vehicleList.get(position);
         holder.bind(vehicle);
+
+        holder.itemView.setOnLongClickListener(v -> {
+            if (longClickListener != null) {
+                return longClickListener.onItemLongClick(vehicle, holder.getAdapterPosition());
+            }
+            return false;
+        });
     }
 
     @Override
@@ -39,23 +61,20 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
         return vehicleList.size();
     }
 
-    // Clase interna para manejar cada item del RecyclerView
-    public static class VehicleViewHolder extends RecyclerView.ViewHolder {
-
-        private TextView tvBrand, tvModel, tvYear;
-
+    static class VehicleViewHolder extends RecyclerView.ViewHolder {
+        private final TextView tvBrandModel, tvYear, tvEngine;
         public VehicleViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvBrand = itemView.findViewById(R.id.tvBrand);
-            tvModel = itemView.findViewById(R.id.tvModel);
-            tvYear = itemView.findViewById(R.id.tvYear);
+            tvBrandModel = itemView.findViewById(R.id.tvBrand);
+            tvYear       = itemView.findViewById(R.id.tvYear);
+            tvEngine     = itemView.findViewById(R.id.tvEngine);
         }
-
-        // Vincula los datos de un vehículo a los controles del item
-        public void bind(Vehicle vehicle) {
-            tvBrand.setText(vehicle.getBrand());
-            tvModel.setText(vehicle.getModel());
-            tvYear.setText(vehicle.getYear());
+        public void bind(Vehicle v) {
+            tvBrandModel.setText(v.getBrand() + " " + v.getModel());
+            tvYear.setText(v.getYear());
+            tvEngine.setText(v.getEngineType());
         }
     }
+
+
 }
