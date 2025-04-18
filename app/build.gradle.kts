@@ -79,5 +79,17 @@ dependencies {
     annotationProcessor ("androidx.room:room-compiler:$room_version")
 
 
+// Retrofit
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+// Conversor GSON para Retrofit
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
+
+// OkHttp (cliente HTTP)
+// Core
+    implementation ("com.squareup.okhttp3:okhttp:4.10.0")
+// Interceptor de logging (opcional, muy útil para depurar)
+    implementation ("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+
 
 }

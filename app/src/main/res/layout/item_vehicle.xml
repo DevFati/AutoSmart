@@ -18,17 +18,9 @@
             android:id="@+id/tvBrand"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Marca"
+            android:text="Marca Modelo"
             android:textStyle="bold"
             android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/tvModel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Modelo"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tvYear"
@@ -36,6 +28,13 @@
             android:layout_height="wrap_content"
             android:text="Año"
             android:layout_marginTop="4dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvEngine"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tipo de motor"
             android:textSize="14sp" />
 
     </LinearLayout>

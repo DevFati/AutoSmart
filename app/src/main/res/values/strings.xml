@@ -10,5 +10,6 @@
     <string name="navigation_drawer_close">Cerrar menú</string>
 
     <string name="profile_image">Imagen de perfil</string>
+    <string name="add_vehicle">Añade vehículo</string>
 
 </resources>
