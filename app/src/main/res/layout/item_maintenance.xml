@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    card:cardCornerRadius="6dp"
+    card:cardElevation="2dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvMaintDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2025-04-18"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tvMaintType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvMaintDate"
+            android:text="Cambio aceite"/>
+
+        <TextView
+            android:id="@+id/tvMaintCost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="€50.00"/>
+
+        <ImageButton
+            android:id="@+id/btnEdit"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_below="@id/tvMaintCost"
+            android:src="@drawable/ic_edit"
+            android:contentDescription="Editar"/>
+
+        <ImageButton
+            android:id="@+id/btnDelete"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_toStartOf="@id/btnEdit"
+            android:layout_below="@id/tvMaintCost"
+            android:src="@drawable/ic_delete"
+            android:contentDescription="Eliminar"/>
+    </RelativeLayout>
+</androidx.cardview.widget.CardView>
