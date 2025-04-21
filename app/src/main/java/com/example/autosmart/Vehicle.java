@@ -6,17 +6,19 @@ public class Vehicle {
     private String model;
     private String year;
     private String engineType;
+    private String userId;   // ← nuevo campo
 
     // Constructor vacío requerido por Firebase
     public Vehicle() { }
 
     // Constructor con parámetros
-    public Vehicle(String id, String brand, String model, String year, String engineType) {
+    public Vehicle(String id, String brand, String model, String year, String engineType, String userId) {
         this.id = id;
         this.brand = brand;
         this.model = model;
         this.year = year;
         this.engineType = engineType;
+        this.userId = userId;
 
     }
 
@@ -51,5 +53,8 @@ public class Vehicle {
 
     public String getEngineType() { return engineType; }
     public void setEngineType(String engineType) { this.engineType = engineType; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 }
 
