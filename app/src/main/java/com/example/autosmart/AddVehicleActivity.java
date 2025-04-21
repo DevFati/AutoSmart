@@ -12,6 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -263,8 +264,9 @@ public class AddVehicleActivity extends AppCompatActivity {
         if (vehicleId == null) {
             vehicleId = ref.push().getKey();
         }
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        Vehicle vehicle = new Vehicle(vehicleId, make, model, year, trim);
+        Vehicle vehicle = new Vehicle(vehicleId, make, model, year, trim,uid);
         ref.child(vehicleId).setValue(vehicle)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Vehículo guardado", Toast.LENGTH_SHORT).show();
