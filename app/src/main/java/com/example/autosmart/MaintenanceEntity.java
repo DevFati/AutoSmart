@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey;
         @PrimaryKey(autoGenerate = true)
         public long id;
 
+        public String userId;      // <<< Nuevo
         public String vehicleId;     // FK al vehículo
         public String date;          // p.ej. "2025-04-18"
         public String type;          // "Revisión", "Cambio aceite", etc.
@@ -15,8 +16,9 @@ import androidx.room.PrimaryKey;
         public double cost;          // coste
 
         // Constructor
-        public MaintenanceEntity(String vehicleId, String date, String type,
+        public MaintenanceEntity(String userId, String vehicleId, String date, String type,
                                  String description, double cost) {
+            this.userId      = userId;
             this.vehicleId = vehicleId;
             this.date = date;
             this.type = type;

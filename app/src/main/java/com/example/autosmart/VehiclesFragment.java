@@ -32,6 +32,7 @@ public class VehiclesFragment extends Fragment {
     private FloatingActionButton fab;
     private VehicleAdapter adapter;
     private List<Vehicle> vehicleList = new ArrayList<>();
+    private MaintenanceDao maintenanceDao;
 
     // Referencia raíz y consulta filtrada
     private DatabaseReference rootRef;
@@ -47,6 +48,7 @@ public class VehiclesFragment extends Fragment {
         recyclerView = root.findViewById(R.id.recyclerVehicles);
         progressBar  = root.findViewById(R.id.progressVehicles);
         fab          = root.findViewById(R.id.fabAddVehicle);
+        maintenanceDao = AppDatabase.getInstance(requireContext()).maintenanceDao();
 
         // 1) Configura RecyclerView + Adapter
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -109,12 +111,15 @@ public class VehiclesFragment extends Fragment {
         PopupMenu menu = new PopupMenu(requireContext(), anchor);
         menu.getMenu().add("Eliminar");
         menu.setOnMenuItemClickListener(item -> {
+            // 1) Borra de Firebase
             rootRef.child(vehicle.getId()).removeValue()
-                    .addOnSuccessListener(a ->
-                            Toast.makeText(getContext(),
-                                    "Vehículo eliminado",
-                                    Toast.LENGTH_SHORT).show()
-                    )
+                    .addOnSuccessListener(a -> {
+                        // 2) Borra localmente todos sus mantenimientos
+                        maintenanceDao.deleteForVehicle(vehicle.getId());
+                        Toast.makeText(getContext(),
+                                "Vehículo y sus mantenimientos eliminados",
+                                Toast.LENGTH_SHORT).show();
+                    })
                     .addOnFailureListener(e ->
                             Toast.makeText(getContext(),
                                     "Error al eliminar: " + e.getMessage(),

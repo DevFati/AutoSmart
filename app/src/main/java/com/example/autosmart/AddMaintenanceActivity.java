@@ -2,6 +2,7 @@ package com.example.autosmart;
 
 import android.app.Activity;
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
@@ -14,29 +15,30 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.*;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 public class AddMaintenanceActivity extends AppCompatActivity {
+    public static final String EXTRA_MAINT_ID   = "maintenance_id";
+    public static final String EXTRA_VEHICLE_ID = "vehicle_id";
+
     private Spinner spinnerVehicles;
     private TextInputEditText etDate, etType, etDesc, etCost;
     private MaterialButton btnSave;
-    public static final String EXTRA_MAINT_ID   = "maintenance_id";
 
     private MaintenanceDao dao;
 
-    // Listas paralelas para el spinner
+    // Para distinguir insertar vs editar
+    private long editingId = -1;
+    private String originalUserId;
+
+    // Listas para el spinner de vehículos
     private List<String> vehicleLabels = new ArrayList<>();
     private List<String> vehicleIds    = new ArrayList<>();
     private ArrayAdapter<String> spinnerAdapter;
-    private long editingId = -1;  // -1 = modo “nuevo”
 
     @Override
     protected void onCreate(@Nullable Bundle saved) {
@@ -51,7 +53,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         etCost          = findViewById(R.id.etCost);
         btnSave         = findViewById(R.id.btnSave);
 
-        // 2) Prepara spinner con el elemento por defecto
+        // 2) Prepara spinner con valor inicial
         vehicleLabels.clear();
         vehicleIds.clear();
         vehicleLabels.add("Selecciona vehículo");
@@ -64,15 +66,15 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerVehicles.setAdapter(spinnerAdapter);
 
-        // 3) Inicializa DAO de Room
+        // 3) Inicializa DAO
         dao = AppDatabase
                 .getInstance(this)
                 .maintenanceDao();
 
-        // 4) Carga solo tus vehículos desde Firebase
+        // 4) Carga vehículos del usuario
         loadMyVehiclesIntoSpinner();
 
-        // 5) DatePicker en el campo fecha (no permite fechas pasadas)
+        // 5) DatePicker en campo fecha (no fechas pasadas)
         etDate.setFocusable(false);
         etDate.setClickable(true);
         etDate.setOnClickListener(v -> {
@@ -94,38 +96,34 @@ public class AddMaintenanceActivity extends AppCompatActivity {
             picker.show();
         });
 
-        // — Si vienen extras, cargamos para edición —
+        // 6) Comprueba si viene EXTRA_MAINT_ID para editar
         if (getIntent().hasExtra(EXTRA_MAINT_ID)) {
             editingId = getIntent().getLongExtra(EXTRA_MAINT_ID, -1);
             if (editingId >= 0) {
-                // recuperar entidad y rellenar UI
-                MaintenanceEntity m = dao.findById(editingId);
-                if (m != null) {
-                    etDate.setText(m.date);
-                    etType.setText(m.type);
-                    etDesc.setText(m.description);
-                    etCost.setText(String.valueOf(m.cost));
-                    // preseleccionar spinnerVehicles tras que terminen de cargarse
+                // Carga datos existentes
+                MaintenanceEntity exist = dao.findById(editingId);
+                if (exist != null) {
+                    originalUserId = exist.userId;
+                    etDate.setText(exist.date);
+                    etType.setText(exist.type);
+                    etDesc.setText(exist.description);
+                    etCost.setText(String.valueOf(exist.cost));
+                    // Posponer selección del spinner hasta que se carguen vehículos:
                     spinnerVehicles.post(() -> {
-                        int idx = vehicleIds.indexOf(m.vehicleId);
+                        int idx = vehicleIds.indexOf(exist.vehicleId);
                         if (idx >= 0) spinnerVehicles.setSelection(idx);
                     });
                 }
             }
         }
 
-        // 6) Guardar mantenimiento
+        // 7) Guardar / actualizar
         btnSave.setOnClickListener(v -> saveMaintenance());
     }
 
-    /**
-     * Recupera de RealtimeDB los vehículos cuyo campo userId coincide con el actual
-     * y los mete en el spinner
-     */
+    /** Recupera de Firebase los vehículos de este usuario */
     private void loadMyVehiclesIntoSpinner() {
-        String uid = FirebaseAuth.getInstance()
-                .getCurrentUser().getUid();
-
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference ref = FirebaseDatabase
                 .getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com")
                 .getReference("vehicles");
@@ -139,12 +137,13 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                         vehicleIds.clear();
                         vehicleLabels.add("Selecciona vehículo");
                         vehicleIds   .add(null);
-
                         for (DataSnapshot ds : snap.getChildren()) {
                             Vehicle v = ds.getValue(Vehicle.class);
                             if (v != null) {
-                                vehicleLabels.add(v.getBrand() + " " + v.getModel() + " (" + v.getYear() + ")");
-                                vehicleIds   .add(v.getId());
+                                vehicleLabels.add(
+                                        v.getBrand() + " " + v.getModel() + " (" + v.getYear() + ")"
+                                );
+                                vehicleIds.add(v.getId());
                             }
                         }
                         spinnerAdapter.notifyDataSetChanged();
@@ -160,9 +159,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                 });
     }
 
-    /**
-     * Valida campos y guarda el nuevo MaintenanceEntity en la base local
-     */
+    /** Inserta o actualiza el mantenimiento */
     private void saveMaintenance() {
         int pos = spinnerVehicles.getSelectedItemPosition();
         String vehId = vehicleIds.get(pos);
@@ -186,22 +183,32 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         }
 
         if (editingId < 0) {
-            // Insert nuevo
-            MaintenanceEntity nuevo = new MaintenanceEntity(vehId, date, type, desc, cost);
-            dao.insert(nuevo);
+            // NUEVO
+            String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            MaintenanceEntity m = new MaintenanceEntity(
+                    uid,      // userId
+                    vehId,
+                    date,
+                    type,
+                    desc,
+                    cost
+            );
+            dao.insert(m);
         } else {
-            // Actualiza existente
+            // ACTUALIZAR
             MaintenanceEntity exist = dao.findById(editingId);
-            exist.vehicleId  = vehId;
-            exist.date       = date;
-            exist.type       = type;
-            exist.description= desc;
-            exist.cost       = cost;
-            dao.update(exist);
+            if (exist != null) {
+                exist.vehicleId   = vehId;
+                exist.date        = date;
+                exist.type        = type;
+                exist.description = desc;
+                exist.cost        = cost;
+                // userId queda en exist.userId (o conserva originalUserId)
+                dao.update(exist);
+            }
         }
 
         setResult(Activity.RESULT_OK);
         finish();
-
     }
 }

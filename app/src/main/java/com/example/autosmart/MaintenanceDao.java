@@ -23,6 +23,17 @@ public interface MaintenanceDao {
     @Query("SELECT * FROM maintenance WHERE id = :id")
     MaintenanceEntity findById(long id);
 
+    @Query("DELETE FROM maintenance WHERE vehicleId = :vehId")
+    void deleteForVehicle(String vehId);
+
+    // Todos los mantenimientos de un usuario
+    @Query("SELECT * FROM maintenance WHERE userId = :uid ORDER BY date DESC")
+    LiveData<List<MaintenanceEntity>> loadAllForUser(String uid);
+
+    // Mantenimientos de un usuario para un vehículo concreto
+    @Query("SELECT * FROM maintenance WHERE userId = :uid AND vehicleId = :vehId ORDER BY date DESC")
+    LiveData<List<MaintenanceEntity>> loadForUserVehicle(String uid, String vehId);
+
     @Insert
     long insert(MaintenanceEntity m);
 
