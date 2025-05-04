@@ -84,7 +84,7 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
                     .commit();
         } else if (id == R.id.nav_diagnostic) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.content_frame, new DiagnosticFragment())
+                    .replace(R.id.content_frame, new DiagnosisFragment())
                     .commit();
         } else if (id == R.id.nav_maps) {
             getSupportFragmentManager().beginTransaction()
