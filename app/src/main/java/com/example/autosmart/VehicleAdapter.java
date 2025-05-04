@@ -1,12 +1,16 @@
 package com.example.autosmart;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
 
 import java.util.List;
 
@@ -44,17 +48,40 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
 
     @Override
     public void onBindViewHolder(@NonNull VehicleViewHolder holder, int position) {
-        // Obtiene el vehículo correspondiente y lo vincula al ViewHolder
-        Vehicle vehicle = vehicleList.get(position);
-        holder.bind(vehicle);
+        Vehicle v = vehicleList.get(position);
+        holder.bind(v);
 
-        holder.itemView.setOnLongClickListener(v -> {
+        // Construye el dominio a partir de la marca:
+        // Ej. "BMW" → "bmw.com"
+        String brandRaw = v.getBrand().trim().toLowerCase();
+        String brandDomain = brandRaw
+                .replaceAll("\\s+", "")               // quita espacios
+                .replaceAll("[^a-z0-9\\-]", "");      // solo a–z, 0–9 y guiones
+        String domain = brandDomain + ".com";
+
+        // Tu token de RapidAPI para Logo.dev
+        String token = "pk_B-lbxINDRYCQG3JiIspqjg";
+
+        String url = "https://img.logo.dev/" + domain
+                + "?token=" + token
+                + "&retina=true";
+        Log.d("VehicleAdapter", "Cargando logo desde: " + url);
+
+        // Carga con Glide
+        Glide.with(holder.itemView.getContext())
+                .load(url)
+                .placeholder(R.drawable.ic_car_placeholder)
+                .error(R.drawable.ic_car_placeholder)
+                .into(holder.imgBrandLogo);
+
+        holder.itemView.setOnLongClickListener(vw -> {
             if (longClickListener != null) {
-                return longClickListener.onItemLongClick(vehicle, holder.getAdapterPosition());
+                return longClickListener.onItemLongClick(v, holder.getAdapterPosition());
             }
             return false;
         });
     }
+
 
     @Override
     public int getItemCount() {
@@ -62,19 +89,24 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
     }
 
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
-        private final TextView tvBrandModel, tvYear, tvEngine;
+        ImageView imgBrandLogo;
+        TextView tvBrandModel, tvYear, tvEngine;
+
         public VehicleViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvBrandModel = itemView.findViewById(R.id.tvBrand);
+            imgBrandLogo = itemView.findViewById(R.id.imgBrandLogo);
+            tvBrandModel = itemView.findViewById(R.id.tvBrandModel);
             tvYear       = itemView.findViewById(R.id.tvYear);
             tvEngine     = itemView.findViewById(R.id.tvEngine);
         }
+
         public void bind(Vehicle v) {
             tvBrandModel.setText(v.getBrand() + " " + v.getModel());
             tvYear.setText(v.getYear());
             tvEngine.setText(v.getEngineType());
         }
     }
+
 
 
 }
