@@ -5,15 +5,18 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {UserEntity.class,MaintenanceEntity.class}, version = 5, exportSchema = false)
+@Database(entities = {UserEntity.class,MaintenanceEntity.class}, version = 6, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase instance;
 
     public abstract UserDao userDao();
 
+    public abstract MaintenanceDao maintenanceDao();
+
     public static synchronized AppDatabase getInstance(Context context) {
         if (instance == null) {
+            android.util.Log.d("AppDatabase", "Inicializando base de datos...");
             instance = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "app_database")
                     // Por simplicidad, usamos allowMainThreadQueries() en este ejemplo;
@@ -21,11 +24,9 @@ public abstract class AppDatabase extends RoomDatabase {
                     .allowMainThreadQueries()
                     .fallbackToDestructiveMigration()
                     .build();
+            android.util.Log.d("AppDatabase", "Base de datos inicializada");
         }
         return instance;
     }
-
-
-    public abstract MaintenanceDao maintenanceDao();
 }
 

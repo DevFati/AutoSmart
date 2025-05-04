@@ -14,9 +14,10 @@ import androidx.room.PrimaryKey;
         public String type;          // "Revisión", "Cambio aceite", etc.
         public String description;   // detalles
         public double cost;          // coste
+        public String vehiclePlate;  // Nueva propiedad
 
         // Constructor
-        public MaintenanceEntity(String userId, String vehicleId, String date, String type,
+        public MaintenanceEntity(String userId, String vehicleId, String vehiclePlate, String date, String type,
                                  String description, double cost) {
             this.userId      = userId;
             this.vehicleId = vehicleId;
@@ -24,6 +25,8 @@ import androidx.room.PrimaryKey;
             this.type = type;
             this.description = description;
             this.cost = cost;
+            this.vehiclePlate = vehiclePlate;
+
         }
     }
 

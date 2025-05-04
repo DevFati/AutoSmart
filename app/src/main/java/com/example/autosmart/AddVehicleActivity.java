@@ -12,6 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -32,6 +33,7 @@ public class AddVehicleActivity extends AppCompatActivity {
     private CarApiService api;
     private DatabaseReference ref;
     private String vehicleId;
+    private TextInputEditText etPlate;
 
     // Nuevas variables para almacenar IDs reales
     private List<String> makeIds = new ArrayList<>();
@@ -48,6 +50,7 @@ public class AddVehicleActivity extends AppCompatActivity {
         spinnerModel = findViewById(R.id.spinnerModel);
         spinnerEngine = findViewById(R.id.spinnerEngine);
         btnSaveVehicle = findViewById(R.id.btnSaveVehicle);
+        etPlate = findViewById(R.id.etPlate);
 
         api = ApiClient.getRetrofit().create(CarApiService.class);
         ref = FirebaseDatabase.getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com").getReference("vehicles");
@@ -260,13 +263,18 @@ public class AddVehicleActivity extends AppCompatActivity {
         String make = spinnerBrand.getSelectedItem().toString();
         String model = spinnerModel.getSelectedItem().toString();
         String trim = spinnerEngine.getSelectedItem().toString();
+        String plate = etPlate.getText().toString().trim().toUpperCase();
 
+        if (plate.isEmpty()) {
+            Toast.makeText(this, "Ingresa la matrícula", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (vehicleId == null) {
             vehicleId = ref.push().getKey();
         }
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        Vehicle vehicle = new Vehicle(vehicleId, make, model, year, trim,uid);
+        Vehicle vehicle = new Vehicle(vehicleId, make, model, year, trim,uid,plate);
         ref.child(vehicleId).setValue(vehicle)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Vehículo guardado", Toast.LENGTH_SHORT).show();
