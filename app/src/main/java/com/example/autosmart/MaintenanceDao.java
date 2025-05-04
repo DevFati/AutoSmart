@@ -8,39 +8,32 @@ import androidx.room.Query;
 import androidx.room.Update;
 
 import java.util.List;
+import java.util.Map;
 
 @Dao
 public interface MaintenanceDao {
-    @Query("SELECT * FROM maintenance WHERE vehicleId = :vehId ORDER BY date DESC")
-    LiveData<List<MaintenanceEntity>> loadForVehicle(String vehId);
+    @Query("SELECT * FROM maintenance WHERE userId = :userId ORDER BY date DESC")
+    LiveData<List<MaintenanceEntity>> loadAll(String userId);
 
-    @Query("SELECT * FROM maintenance ORDER BY date DESC")
-    LiveData<List<MaintenanceEntity>> loadAll();
+    @Query("SELECT * FROM maintenance WHERE userId = :userId AND vehicleId = :vehId ORDER BY date DESC")
+    LiveData<List<MaintenanceEntity>> loadForVehicle(String userId, String vehId);
 
-    @Query("SELECT * FROM maintenance WHERE id = :id")
-    MaintenanceEntity getById(long id);
+    @Insert long insert(MaintenanceEntity m);
+    @Update void update(MaintenanceEntity m);
+    @Delete void delete(MaintenanceEntity m);
 
-    @Query("SELECT * FROM maintenance WHERE id = :id")
+    @Query("SELECT * FROM maintenance WHERE id = :id LIMIT 1")
     MaintenanceEntity findById(long id);
 
     @Query("DELETE FROM maintenance WHERE vehicleId = :vehId")
     void deleteForVehicle(String vehId);
 
-    // Todos los mantenimientos de un usuario
-    @Query("SELECT * FROM maintenance WHERE userId = :uid ORDER BY date DESC")
-    LiveData<List<MaintenanceEntity>> loadAllForUser(String uid);
-
-    // Mantenimientos de un usuario para un vehículo concreto
-    @Query("SELECT * FROM maintenance WHERE userId = :uid AND vehicleId = :vehId ORDER BY date DESC")
-    LiveData<List<MaintenanceEntity>> loadForUserVehicle(String uid, String vehId);
-
-    @Insert
-    long insert(MaintenanceEntity m);
-
-    @Update
-    void update(MaintenanceEntity m);
-
-    @Delete
-    void delete(MaintenanceEntity m);
+    // Método de depuración
+    @Query("SELECT COUNT(*) FROM maintenance WHERE userId = :userId")
+    int countMaintenanceForUser(String userId);
 }
+
+
+
+
 
