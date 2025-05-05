@@ -13,9 +13,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,6 +39,8 @@ public class AddVehicleActivity extends AppCompatActivity {
     private DatabaseReference ref;
     private String vehicleId;
     private TextInputEditText etPlate;
+    private TextInputLayout plateContainer;
+
 
     // Nuevas variables para almacenar IDs reales
     private List<String> makeIds = new ArrayList<>();
@@ -51,6 +58,8 @@ public class AddVehicleActivity extends AppCompatActivity {
         spinnerEngine = findViewById(R.id.spinnerEngine);
         btnSaveVehicle = findViewById(R.id.btnSaveVehicle);
         etPlate = findViewById(R.id.etPlate);
+        plateContainer = findViewById(R.id.plateContainer);
+
 
         api = ApiClient.getRetrofit().create(CarApiService.class);
         ref = FirebaseDatabase.getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com").getReference("vehicles");
@@ -81,9 +90,10 @@ public class AddVehicleActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position > 0) {
-                    String selectedYear = parent.getItemAtPosition(position).toString();
-                    findViewById(R.id.brandContainer).setVisibility(View.VISIBLE);
-                    loadMakes(selectedYear);
+                    // Mostrar el TextInputLayout de Marca
+                    View brandInputLayout = (View) spinnerBrand.getParent().getParent();
+                    brandInputLayout.setVisibility(View.VISIBLE);
+                    loadMakes(parent.getItemAtPosition(position).toString());
                 }
             }
 
@@ -98,7 +108,9 @@ public class AddVehicleActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position > 0 && makeIds.size() >= position) {
-                    findViewById(R.id.modelContainer).setVisibility(View.VISIBLE);
+                    // Mostrar el TextInputLayout de Modelo
+                    View modelInputLayout = (View) spinnerModel.getParent().getParent();
+                    modelInputLayout.setVisibility(View.VISIBLE);
                     String year = spinnerYear.getSelectedItem().toString();
                     String makeId = makeIds.get(position - 1);
                     loadModels(year, makeId);
@@ -114,7 +126,9 @@ public class AddVehicleActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position > 0 && modelNames.size() >= position) {
-                    findViewById(R.id.trimContainer).setVisibility(View.VISIBLE);
+                    // Mostrar el TextInputLayout de Versión
+                    View trimInputLayout = (View) spinnerEngine.getParent().getParent();
+                    trimInputLayout.setVisibility(View.VISIBLE);
                     String year = spinnerYear.getSelectedItem().toString();
                     String make = spinnerBrand.getSelectedItem().toString();
                     String model = modelNames.get(position - 1);
@@ -266,22 +280,56 @@ public class AddVehicleActivity extends AppCompatActivity {
         String plate = etPlate.getText().toString().trim().toUpperCase();
 
         if (plate.isEmpty()) {
-            Toast.makeText(this, "Ingresa la matrícula", Toast.LENGTH_SHORT).show();
+            plateContainer.setError("Ingresa la matrícula");
+            etPlate.requestFocus();
             return;
         }
+        if (!plate.matches("^[0-9]{4}[A-Z]{3}$")) {
+            plateContainer.setError("Formato de matrícula inválido (ej: 1234ABC)");
+            etPlate.requestFocus();
+            return;
+        } else {
+            plateContainer.setError(null);
+        }
+
         if (vehicleId == null) {
             vehicleId = ref.push().getKey();
         }
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        Vehicle vehicle = new Vehicle(vehicleId, make, model, year, trim,uid,plate);
-        ref.child(vehicleId).setValue(vehicle)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Vehículo guardado", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        // --- Comprobar si la matrícula ya existe para este usuario ---
+        ref.orderByChild("userId").equalTo(uid).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                boolean exists = false;
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    Vehicle v = child.getValue(Vehicle.class);
+                    if (v != null && v.getPlate() != null && v.getPlate().equalsIgnoreCase(plate)) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (exists) {
+                    plateContainer.setError("Esta matrícula ya está registrada");
+                    etPlate.requestFocus();
+                } else {
+                    plateContainer.setError(null);
+                    Vehicle vehicle = new Vehicle(vehicleId, make, model, year, trim, uid, plate);
+                    ref.child(vehicleId).setValue(vehicle)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(AddVehicleActivity.this, "Vehículo guardado", Toast.LENGTH_SHORT).show();
+                                finish();
+                            })
+                            .addOnFailureListener(e ->
+                                    Toast.makeText(AddVehicleActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {
+                Toast.makeText(AddVehicleActivity.this, "Error comprobando matrícula", Toast.LENGTH_SHORT).show();
+            }
+        });
+
     }
 
     // Nuevo método para decodificar VIN

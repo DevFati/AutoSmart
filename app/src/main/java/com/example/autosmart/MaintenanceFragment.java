@@ -8,16 +8,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Spinner;
+import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
@@ -29,9 +30,10 @@ import java.util.Map;
 public class MaintenanceFragment extends Fragment {
     private static final int RC_ADD_MAINT = 1001;
 
-    private Spinner spinnerVehicles;
+    private AutoCompleteTextView spinnerVehicles;
     private RecyclerView rv;
-    private FloatingActionButton fab;
+    private MaterialButton fab;
+
     private MaintenanceAdapter adapter;
     private MaintenanceDao dao;
 
@@ -51,6 +53,8 @@ public class MaintenanceFragment extends Fragment {
         spinnerVehicles = root.findViewById(R.id.spinnerVehicle);
         rv              = root.findViewById(R.id.recyclerMaintenance);
         fab             = root.findViewById(R.id.fabAddMaintenance);
+        CardView emptyState = root.findViewById(R.id.emptyState);
+
 
         // DAO + Recycler
         dao = AppDatabase.getInstance(requireContext()).maintenanceDao();
@@ -70,63 +74,57 @@ public class MaintenanceFragment extends Fragment {
         });
         rv.setAdapter(adapter);
 
-        // Spinner: "Todos los vehículos" + setup
+        // Setup del AutoCompleteTextView
         vehicleLabels.clear();
         vehicleIds.clear();
         vehicleLabelById.clear();
-        vehicleLabels.add("🔧 Todos los vehículos");
+        vehicleLabels.add("Todos los vehículos");
+
         vehicleIds   .add(null);
         vehicleSpinnerAdapter = new ArrayAdapter<>(
                 requireContext(),
-                android.R.layout.simple_spinner_item,
+                android.R.layout.simple_dropdown_item_1line,
                 vehicleLabels
         );
-        vehicleSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerVehicles.setAdapter(vehicleSpinnerAdapter);
 
-        // Listener de filtrado
-        spinnerVehicles.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onNothingSelected(AdapterView<?> parent) { }
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                String vehId = vehicleIds.get(pos);
-                String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                
-                // Debug: Mostrar información
-                int count = dao.countMaintenanceForUser(userId);
-                Toast.makeText(getContext(), 
-                    "Debug: UserID=" + userId + 
-                    ", VehID=" + vehId + 
-                    ", Total mantenimientos=" + count, 
-                    Toast.LENGTH_LONG).show();
-
-                if (vehId == null) {
-                    // TODOS
-                    dao.loadAll(userId).observe(getViewLifecycleOwner(), list -> {
-                        adapter.setItems(list);
-                        // Debug: Mostrar tamaño de la lista
-                        Toast.makeText(getContext(), 
-                            "Debug: Total registros cargados=" + (list != null ? list.size() : 0), 
-                            Toast.LENGTH_SHORT).show();
-                    });
-                } else {
-                    // SOLO ESE VEHÍCULO
-                    dao.loadForVehicle(userId, vehId).observe(getViewLifecycleOwner(), list -> {
-                        adapter.setItems(list);
-                        // Debug: Mostrar tamaño de la lista
-                        Toast.makeText(getContext(), 
-                            "Debug: Registros para vehículo=" + (list != null ? list.size() : 0), 
-                            Toast.LENGTH_SHORT).show();
-                    });
-                }
+        // Listener de selección
+        spinnerVehicles.setOnItemClickListener((parent, view, pos, id) -> {
+            String vehId = vehicleIds.get(pos);
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            
+            if (vehId == null) {
+                // TODOS
+                dao.loadAll(userId).observe(getViewLifecycleOwner(), list -> {
+                    adapter.setItems(list);
+                    if (list == null || list.isEmpty()) {
+                        rv.setVisibility(View.GONE);
+                        emptyState.setVisibility(View.VISIBLE);
+                    } else {
+                        rv.setVisibility(View.VISIBLE);
+                        emptyState.setVisibility(View.GONE);
+                    }
+                });
+            } else {
+                // SOLO ESE VEHÍCULO
+                dao.loadForVehicle(userId, vehId).observe(getViewLifecycleOwner(), list -> {
+                    adapter.setItems(list);
+                    if (list == null || list.isEmpty()) {
+                        rv.setVisibility(View.GONE);
+                        emptyState.setVisibility(View.VISIBLE);
+                    } else {
+                        rv.setVisibility(View.VISIBLE);
+                        emptyState.setVisibility(View.GONE);
+                    }
+                });
             }
         });
 
         // Trae tus vehículos para el filtro
         loadVehiclesIntoSpinner();
 
-        // Forzar selección inicial para disparar "Todos los vehículos"
-        spinnerVehicles.post(() -> spinnerVehicles.setSelection(0, true));
+        // Forzar selección inicial
+        spinnerVehicles.setText("Todos los vehículos", false);
 
         // FAB → añadir nuevo mantenimiento
         fab.setOnClickListener(v ->
@@ -135,6 +133,7 @@ public class MaintenanceFragment extends Fragment {
                         RC_ADD_MAINT
                 )
         );
+
 
         return root;
     }
@@ -159,7 +158,8 @@ public class MaintenanceFragment extends Fragment {
                         for (DataSnapshot ds : snap.getChildren()) {
                             Vehicle v = ds.getValue(Vehicle.class);
                             if (v != null) {
-                                String label = "🚗 " + v.getBrand()
+                                String label = v.getBrand()
+
                                         + " " + v.getModel()
                                         + " (" + v.getYear() + ")";
                                 vehicleLabels.add(label);
@@ -184,7 +184,8 @@ public class MaintenanceFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RC_ADD_MAINT && resultCode == Activity.RESULT_OK) {
             Toast.makeText(getContext(),
-                    "✅ Mantenimiento guardado",
+                    "Mantenimiento guardado",
+
                     Toast.LENGTH_SHORT
             ).show();
             // LiveData vuelve a dispararse automáticamente

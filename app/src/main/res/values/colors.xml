@@ -12,5 +12,7 @@
     <color name="gray_light">#F5F5F5</color>
 
     <color name="purple_700">#7B1FA2</color>
+    <color name="purple_200">#BB86FC</color>
+    <color name="red_500">#F44336</color>
 
 </resources>

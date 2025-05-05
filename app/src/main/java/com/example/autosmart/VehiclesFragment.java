@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
@@ -59,6 +60,20 @@ public class VehiclesFragment extends Fragment {
         adapter.setOnItemLongClickListener((vehicle, pos) -> {
             showDeleteMenu(vehicle, recyclerView.findViewHolderForAdapterPosition(pos).itemView);
             return true;
+        });
+
+        // 2.5) Configura short click para abrir detalle
+        adapter.setOnItemClickListener((vehicle, pos) -> {
+            Bundle args = new Bundle();
+            args.putString("vehicleId", vehicle.getId());
+            VehicleDetailFragment fragment = new VehicleDetailFragment();
+            fragment.setArguments(args);
+            requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.vehicles_coordinator, fragment)
+                .addToBackStack(null)
+                .commit();
+            fab.setVisibility(View.GONE);
         });
 
         // 3) Prepara Firebase:
@@ -106,28 +121,30 @@ public class VehiclesFragment extends Fragment {
         });
     }
 
-    /** Muestra solo la opción “Eliminar” en un PopupMenu */
+    /** Muestra solo la opción "Eliminar" en un PopupMenu */
     private void showDeleteMenu(Vehicle vehicle, View anchor) {
-        PopupMenu menu = new PopupMenu(requireContext(), anchor);
-        menu.getMenu().add("Eliminar");
-        menu.setOnMenuItemClickListener(item -> {
-            // 1) Borra de Firebase
-            rootRef.child(vehicle.getId()).removeValue()
-                    .addOnSuccessListener(a -> {
-                        // 2) Borra localmente todos sus mantenimientos
-                        maintenanceDao.deleteForVehicle(vehicle.getId());
-                        Toast.makeText(getContext(),
-                                "Vehículo y sus mantenimientos eliminados",
-                                Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e ->
+        new MaterialAlertDialogBuilder(requireContext())
+            .setTitle("¿Eliminar vehículo?")
+            .setMessage("Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este vehículo?")
+            .setIcon(R.drawable.ic_delete)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Eliminar", (dialog, which) -> {
+                // 1) Borra de Firebase
+                rootRef.child(vehicle.getId()).removeValue()
+                        .addOnSuccessListener(a -> {
+                            // 2) Borra localmente todos sus mantenimientos
+                            maintenanceDao.deleteForVehicle(vehicle.getId());
                             Toast.makeText(getContext(),
-                                    "Error al eliminar: " + e.getMessage(),
-                                    Toast.LENGTH_SHORT).show()
-                    );
-            return true;
-        });
-        menu.show();
+                                    "Vehículo y sus mantenimientos eliminados",
+                                    Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e ->
+                                Toast.makeText(getContext(),
+                                        "Error al eliminar: " + e.getMessage(),
+                                        Toast.LENGTH_SHORT).show()
+                        );
+            })
+            .show();
     }
 
     @Override

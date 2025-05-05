@@ -1,53 +1,99 @@
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    android:padding="8dp">
+    android:layout_marginTop="12dp"
+    android:layout_marginBottom="4dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:background="@android:color/transparent"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="8dp">
+
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
-        <!-- Logo de la marca -->
-        <ImageView
-            android:id="@+id/imgBrandLogo"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:contentDescription="Logo de la marca"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_car_placeholder"/>
+        <!-- Imagen circular -->
+        <FrameLayout
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="16dp">
+            <ImageView
+                android:id="@+id/imgBrandLogo"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:scaleType="centerCrop"
+                android:background="@drawable/circle_bg"
+                android:padding="6dp"
+                android:contentDescription="Logo de la marca" />
+        </FrameLayout>
 
-        <!-- Texto con marca y modelo -->
-        <TextView
-            android:id="@+id/tvBrandModel"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/imgBrandLogo"
-            android:layout_marginStart="12dp"
-            android:text="Marca Modelo"
-            android:textSize="16sp"/>
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
 
-        <!-- Año -->
-        <TextView
-            android:id="@+id/tvYear"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/tvBrandModel"
-            android:layout_toEndOf="@id/imgBrandLogo"
-            android:layout_marginStart="12dp"
-            android:text="2022"/>
+            <!-- Marca y modelo -->
+            <TextView
+                android:id="@+id/tvBrandModel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Marca Modelo"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:textColor="#222" />
 
-        <!-- Motor -->
-        <TextView
-            android:id="@+id/tvEngine"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/tvYear"
-            android:layout_toEndOf="@id/imgBrandLogo"
-            android:layout_marginStart="12dp"
-            android:text="Diesel"/>
+            <!-- Matrícula alineada debajo del modelo, sin icono -->
+            <TextView
+                android:id="@+id/tvPlate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="4456LLL"
+                android:textColor="#666"
+                android:textSize="15sp"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp" />
 
-    </RelativeLayout>
+            <!-- Año y motor -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvYear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2022"
+                    android:textColor="#888"
+                    android:textSize="15sp"
+                    android:drawableStart="@drawable/ic_calendar"
+                    android:drawablePadding="6dp" />
+
+                <TextView
+                    android:id="@+id/tvEngine"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Motor"
+                    android:textColor="#888"
+                    android:textSize="15sp"
+                    android:layout_marginStart="16dp"
+                    android:drawableStart="@drawable/ic_engine"
+                    android:drawablePadding="6dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
 </androidx.cardview.widget.CardView>
