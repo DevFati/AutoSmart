@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -40,6 +41,7 @@ public class AddVehicleActivity extends AppCompatActivity {
     private TextInputEditText etPlate;
     private TextInputLayout plateContainer;
 
+
     // Nuevas variables para almacenar IDs reales
     private List<String> makeIds = new ArrayList<>();
     private List<String> modelNames = new ArrayList<>();
@@ -57,6 +59,7 @@ public class AddVehicleActivity extends AppCompatActivity {
         btnSaveVehicle = findViewById(R.id.btnSaveVehicle);
         etPlate = findViewById(R.id.etPlate);
         plateContainer = findViewById(R.id.plateContainer);
+
 
         api = ApiClient.getRetrofit().create(CarApiService.class);
         ref = FirebaseDatabase.getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com").getReference("vehicles");
@@ -288,6 +291,7 @@ public class AddVehicleActivity extends AppCompatActivity {
         } else {
             plateContainer.setError(null);
         }
+
         if (vehicleId == null) {
             vehicleId = ref.push().getKey();
         }
@@ -325,6 +329,7 @@ public class AddVehicleActivity extends AppCompatActivity {
                 Toast.makeText(AddVehicleActivity.this, "Error comprobando matrícula", Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     // Nuevo método para decodificar VIN

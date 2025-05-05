@@ -87,6 +87,7 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
                 clickListener.onItemClick(v, holder.getAdapterPosition());
             }
         });
+
         holder.itemView.setOnLongClickListener(vw -> {
             if (longClickListener != null) {
                 return longClickListener.onItemLongClick(v, holder.getAdapterPosition());
@@ -94,6 +95,7 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
             return false;
         });
     }
+
 
     @Override
     public int getItemCount() {
@@ -103,6 +105,7 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
         ImageView imgBrandLogo;
         TextView tvBrandModel, tvYear, tvEngine, tvPlate;
+
 
         public VehicleViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -120,4 +123,5 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
             tvPlate.setText(v.getPlate());
         }
     }
+
 }
