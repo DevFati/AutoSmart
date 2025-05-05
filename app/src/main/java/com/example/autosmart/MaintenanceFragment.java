@@ -33,6 +33,7 @@ public class MaintenanceFragment extends Fragment {
     private AutoCompleteTextView spinnerVehicles;
     private RecyclerView rv;
     private MaterialButton fab;
+
     private MaintenanceAdapter adapter;
     private MaintenanceDao dao;
 
@@ -54,6 +55,7 @@ public class MaintenanceFragment extends Fragment {
         fab             = root.findViewById(R.id.fabAddMaintenance);
         CardView emptyState = root.findViewById(R.id.emptyState);
 
+
         // DAO + Recycler
         dao = AppDatabase.getInstance(requireContext()).maintenanceDao();
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -67,7 +69,7 @@ public class MaintenanceFragment extends Fragment {
             @Override
             public void onDelete(MaintenanceEntity m) {
                 dao.delete(m);
-                Toast.makeText(getContext(), "Mantenimiento eliminado", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "🗑️ Mantenimiento eliminado", Toast.LENGTH_SHORT).show();
             }
         });
         rv.setAdapter(adapter);
@@ -77,6 +79,7 @@ public class MaintenanceFragment extends Fragment {
         vehicleIds.clear();
         vehicleLabelById.clear();
         vehicleLabels.add("Todos los vehículos");
+
         vehicleIds   .add(null);
         vehicleSpinnerAdapter = new ArrayAdapter<>(
                 requireContext(),
@@ -131,6 +134,7 @@ public class MaintenanceFragment extends Fragment {
                 )
         );
 
+
         return root;
     }
 
@@ -155,6 +159,7 @@ public class MaintenanceFragment extends Fragment {
                             Vehicle v = ds.getValue(Vehicle.class);
                             if (v != null) {
                                 String label = v.getBrand()
+
                                         + " " + v.getModel()
                                         + " (" + v.getYear() + ")";
                                 vehicleLabels.add(label);
@@ -180,6 +185,7 @@ public class MaintenanceFragment extends Fragment {
         if (requestCode == RC_ADD_MAINT && resultCode == Activity.RESULT_OK) {
             Toast.makeText(getContext(),
                     "Mantenimiento guardado",
+
                     Toast.LENGTH_SHORT
             ).show();
             // LiveData vuelve a dispararse automáticamente
