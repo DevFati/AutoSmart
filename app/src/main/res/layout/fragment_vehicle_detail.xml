@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAF7FF">
+
+    <!-- Card grande del vehículo -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardVehicle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="12dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:backgroundTint="#FFFFFF"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="20dp"
+            android:gravity="center_vertical">
+
+            <!-- Logo circular grande -->
+            <FrameLayout
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/circle_bg"
+                android:layout_marginEnd="20dp">
+
+                <ImageView
+                    android:id="@+id/imgBrandLogoDetail"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center"
+                    android:scaleType="centerInside"
+                    android:contentDescription="Logo de la marca"/>
+            </FrameLayout>
+
+            <!-- Datos del vehículo -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvBrandModelDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Marca Modelo"
+                    android:textStyle="bold"
+                    android:textSize="24sp"
+                    android:textColor="#222" />
+
+                <TextView
+                    android:id="@+id/tvPlateDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1234ABC"
+                    android:textColor="#7E8092"
+                    android:textSize="18sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="10dp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvYearDetail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2021"
+                        android:textColor="#888"
+                        android:textSize="16sp"
+                        android:drawableStart="@drawable/ic_calendar"
+                        android:drawablePadding="6dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Sección de documentación -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardDocumentation"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="8dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:backgroundTint="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/cardVehicle"
+        app:layout_constraintBottom_toTopOf="@id/btnAddDoc"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Título -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Documentación"
+                    android:textStyle="bold"
+                    android:textSize="20sp"
+                    android:textColor="#222"/>
+            </LinearLayout>
+
+            <!-- Mensaje si no hay documentos (ahora arriba) -->
+            <TextView
+                android:id="@+id/tvNoDocs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sin documentación añadida"
+                android:textColor="#888"
+                android:textSize="16sp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:layout_marginTop="16dp"/>
+
+            <!-- Lista de documentos -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvDocs"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="16dp"
+                android:clipToPadding="false"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Botón extendido para añadir documentación -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddDoc"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="48dp"
+        android:text="Añadir documentación"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/purple_500"
+        app:icon="@drawable/ic_add_modern"
+        app:iconGravity="textStart"
+        app:iconPadding="16dp"
+        app:cornerRadius="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:elevation="10dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

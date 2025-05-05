@@ -25,9 +25,13 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
         boolean onItemLongClick(Vehicle vehicle, int position);
     }
 
+    public interface OnItemClickListener {
+        void onItemClick(Vehicle vehicle, int position);
+    }
 
     private List<Vehicle> vehicleList;
     private OnItemLongClickListener longClickListener;
+    private OnItemClickListener clickListener;
 
     public VehicleAdapter(List<Vehicle> vehicleList) {
         this.vehicleList = vehicleList;
@@ -35,6 +39,10 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
 
     public void setOnItemLongClickListener(OnItemLongClickListener listener) {
         this.longClickListener = listener;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.clickListener = listener;
     }
 
     @NonNull
@@ -74,6 +82,11 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
                 .error(R.drawable.ic_car_placeholder)
                 .into(holder.imgBrandLogo);
 
+        holder.itemView.setOnClickListener(view -> {
+            if (clickListener != null) {
+                clickListener.onItemClick(v, holder.getAdapterPosition());
+            }
+        });
         holder.itemView.setOnLongClickListener(vw -> {
             if (longClickListener != null) {
                 return longClickListener.onItemLongClick(v, holder.getAdapterPosition());
@@ -82,7 +95,6 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
         });
     }
 
-
     @Override
     public int getItemCount() {
         return vehicleList.size();
@@ -90,7 +102,7 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
 
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
         ImageView imgBrandLogo;
-        TextView tvBrandModel, tvYear, tvEngine;
+        TextView tvBrandModel, tvYear, tvEngine, tvPlate;
 
         public VehicleViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -98,15 +110,14 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
             tvBrandModel = itemView.findViewById(R.id.tvBrandModel);
             tvYear       = itemView.findViewById(R.id.tvYear);
             tvEngine     = itemView.findViewById(R.id.tvEngine);
+            tvPlate      = itemView.findViewById(R.id.tvPlate);
         }
 
         public void bind(Vehicle v) {
             tvBrandModel.setText(v.getBrand() + " " + v.getModel());
             tvYear.setText(v.getYear());
             tvEngine.setText(v.getEngineType());
+            tvPlate.setText(v.getPlate());
         }
     }
-
-
-
 }
