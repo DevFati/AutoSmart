@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
@@ -28,7 +29,7 @@ import java.util.List;
 public class AddMaintenanceActivity extends AppCompatActivity {
     public static final String EXTRA_MAINT_ID   = "maintenance_id";
 
-    private Spinner spinnerVehicles;
+    private MaterialAutoCompleteTextView spinnerVehicles;
     private TextInputEditText etDate, etType, etDesc, etCost, etPlate;
     private MaterialButton btnSave;
 
@@ -64,10 +65,9 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         vehicleIds  .add(null);
         spinnerAdapter = new ArrayAdapter<>(
                 this,
-                android.R.layout.simple_spinner_item,
+                android.R.layout.simple_dropdown_item_1line,
                 vehicleLabels
         );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerVehicles.setAdapter(spinnerAdapter);
 
         loadMyVehiclesIntoSpinner();
@@ -113,7 +113,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         if (pendingVehicleId != null) {
             int idx = vehicleIds.indexOf(pendingVehicleId);
             if (idx >= 0) {
-                spinnerVehicles.setSelection(idx);
+                spinnerVehicles.setText(vehicleLabels.get(idx), false);
                 // El listener del spinner rellenará la matrícula automáticamente
             } else {
                 etPlate.setText(pendingPlate != null ? pendingPlate : "");
@@ -124,6 +124,34 @@ public class AddMaintenanceActivity extends AppCompatActivity {
 
         // 6) Botón Guardar
         btnSave.setOnClickListener(v -> saveMaintenance());
+
+        // Agregar listener para actualizar la matrícula
+        spinnerVehicles.setOnItemClickListener((parent, view, position, id) -> {
+            if (position > 0) { // Si se selecciona un vehículo (no el placeholder)
+                String vehId = vehicleIds.get(position);
+                // Obtener la matrícula del vehículo seleccionado
+                DatabaseReference ref = FirebaseDatabase
+                        .getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com")
+                        .getReference("vehicles");
+                ref.child(vehId).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        Vehicle v = snapshot.getValue(Vehicle.class);
+                        if (v != null) {
+                            etPlate.setText(v.getPlate());
+                        }
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Toast.makeText(AddMaintenanceActivity.this,
+                                "Error obteniendo matrícula: " + error.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else {
+                etPlate.setText("");
+            }
+        });
     }
 
     /** Carga desde Firebase solo los vehículos de este usuario para el spinner */
@@ -157,7 +185,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                         if (pendingVehicleId != null) {
                             int idx = vehicleIds.indexOf(pendingVehicleId);
                             if (idx >= 0) {
-                                spinnerVehicles.setSelection(idx);
+                                spinnerVehicles.setText(vehicleLabels.get(idx), false);
                                 // El listener del spinner rellenará la matrícula automáticamente
                             } else {
                                 etPlate.setText(pendingPlate != null ? pendingPlate : "");
@@ -173,50 +201,18 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show();
                     }
                 });
-
-        // Agregar listener al spinner para actualizar la matrícula
-        spinnerVehicles.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position > 0) { // Si se selecciona un vehículo (no el placeholder)
-                    String vehId = vehicleIds.get(position);
-                    // Obtener la matrícula del vehículo seleccionado
-                    ref.child(vehId).addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            Vehicle v = snapshot.getValue(Vehicle.class);
-                            if (v != null) {
-                                etPlate.setText(v.getPlate());
-                            }
-                        }
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                            Toast.makeText(AddMaintenanceActivity.this,
-                                    "Error obteniendo matrícula: " + error.getMessage(),
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    etPlate.setText("");
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                etPlate.setText("");
-            }
-        });
     }
 
     /** Valida y guarda o actualiza el registro de mantenimiento */
     private void saveMaintenance() {
-        // Spinner
-        int pos = spinnerVehicles.getSelectedItemPosition();
-        String vehId = vehicleIds.get(pos);
-        if (vehId == null) {
+        // Obtener el vehículo seleccionado
+        String selectedText = spinnerVehicles.getText().toString();
+        int pos = vehicleLabels.indexOf(selectedText);
+        if (pos <= 0) { // Si no hay selección o es el placeholder
             Toast.makeText(this, "Debes seleccionar un vehículo", Toast.LENGTH_SHORT).show();
             return;
         }
+        String vehId = vehicleIds.get(pos);
 
         // Resto de campos
         String date = etDate.getText().toString().trim();

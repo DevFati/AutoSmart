@@ -1,143 +1,193 @@
 package com.example.autosmart;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.auth.FirebaseAuth;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.database.*;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.content.ContextCompat;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
-import android.provider.Settings;
+import java.util.Map;
 
 public class VehicleDetailFragment extends Fragment {
-    private static final int RC_PICK_IMAGE = 1001;
-    private static final int RC_TAKE_PHOTO = 1002;
-    private static final int RC_PICK_PDF = 1003;
 
-    private TextView tvBrandModel, tvPlate, tvYear;
+    private static final int RC_TAKE_PHOTO = 1001;
+    private static final int RC_PICK_IMAGE = 1002;
+    private static final int RC_PICK_PDF   = 1003;
+    private static final String PREFS_NAME = "vehicle_docs_prefs";
+    private static final String PREFS_KEY_PREFIX = "docs_";
+
+    // Vistas
+    private TextView tvBrandModel, tvPlate, tvYear, tvNoDocs;
+    private ImageView imgBrandLogoDetail;
     private RecyclerView rvDocs;
+    private MaterialButton btnAddDoc;
+
+    // Adapter
     private DocumentAdapter docAdapter;
     private List<Document> documents = new ArrayList<>();
+    private List<Document> localDocuments = new ArrayList<>();
+
+    // Firebase
     private String vehicleId;
     private DatabaseReference docsRef;
     private StorageReference storageRef;
+
     // Permisos
-    private ActivityResultLauncher<String> singlePermissionLauncher;
-    private String pendingPermission;
     private Runnable pendingAction;
-    private ImageView imgBrandLogoDetail;
-    private TextView tvNoDocs;
-    private MaterialButton btnAddDoc;
+    private ActivityResultLauncher<String[]> permissionsLauncher;
+    private Gson gson = new Gson();
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Prepara el launcher de permisos múltiples
+        permissionsLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    boolean allGranted = true;
+                    for (Boolean granted : result.values()) {
+                        if (!granted) {
+                            allGranted = false;
+                            break;
+                        }
+                    }
+                    if (allGranted && pendingAction != null) {
+                        pendingAction.run();
+                    } else {
+                        Toast.makeText(getContext(),
+                                "Permiso requerido para continuar",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+    }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            @Nullable ViewGroup  container,
+            @Nullable Bundle     savedInstanceState
+    ) {
         View root = inflater.inflate(R.layout.fragment_vehicle_detail, container, false);
 
-        tvBrandModel = root.findViewById(R.id.tvBrandModelDetail);
-        tvPlate = root.findViewById(R.id.tvPlateDetail);
-        tvYear = root.findViewById(R.id.tvYearDetail);
-        rvDocs = root.findViewById(R.id.rvDocs);
+        // 1) Bind vistas
+        tvBrandModel       = root.findViewById(R.id.tvBrandModelDetail);
+        tvPlate            = root.findViewById(R.id.tvPlateDetail);
+        tvYear             = root.findViewById(R.id.tvYearDetail);
         imgBrandLogoDetail = root.findViewById(R.id.imgBrandLogoDetail);
-        tvNoDocs = root.findViewById(R.id.tvNoDocs);
-        btnAddDoc = root.findViewById(R.id.btnAddDoc);
+        tvNoDocs           = root.findViewById(R.id.tvNoDocs);
+        rvDocs             = root.findViewById(R.id.rvDocs);
+        btnAddDoc          = root.findViewById(R.id.btnAddDoc);
 
-        // Recibe el ID del vehículo por argumentos
-        vehicleId = getArguments() != null ? getArguments().getString("vehicleId") : null;
+        // 2) Recoge el ID del vehículo
+        if (getArguments() != null) {
+            vehicleId = getArguments().getString("vehicleId");
+        }
         if (vehicleId == null) return root;
 
-        // Referencias Firebase
-        docsRef = FirebaseDatabase.getInstance().getReference("vehiculos").child(vehicleId).child("documentos");
-        storageRef = FirebaseStorage.getInstance().getReference("vehiculos").child(vehicleId).child("documentos");
+        // 3) Inicializa Firebase
+        docsRef    = FirebaseDatabase.getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com")
+                .getReference("vehicles")
+                .child(vehicleId)
+                .child("documents");
+        storageRef = FirebaseStorage.getInstance("gs://autosmart-6e3c3.appspot.com")
+                .getReference("vehicles")
+                .child(vehicleId)
+                .child("documents");
 
-        // Cargar datos del vehículo (puedes obtenerlos por argumentos o desde Firebase)
+        // 4) Carga datos del vehículo
         loadVehicleData(vehicleId);
 
-        // Documentos
-        docAdapter = new DocumentAdapter(documents);
+        // 5) Prepara RecyclerView
+        localDocuments = loadLocalDocuments(vehicleId);
+        docAdapter = new DocumentAdapter(localDocuments);
         rvDocs.setLayoutManager(new LinearLayoutManager(getContext()));
         rvDocs.setAdapter(docAdapter);
 
-        loadDocuments();
+        // Controla la visibilidad del mensaje
+        tvNoDocs.setVisibility(localDocuments.isEmpty() ? View.VISIBLE : View.GONE);
 
-        // Permisos robustos
-        singlePermissionLauncher = registerForActivityResult(
-            new ActivityResultContracts.RequestPermission(),
-            isGranted -> {
-                if (isGranted && pendingAction != null) {
-                    pendingAction.run();
-                } else if (!isGranted && pendingPermission != null) {
-                    if (!shouldShowRequestPermissionRationale(pendingPermission)) {
-                        showPermissionSettingsDialog();
-                    } else {
-                        Toast.makeText(getContext(), "Permiso requerido para continuar", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-        );
-        // Click en el área de documentación (título o lista)
-        View.OnClickListener addDocClick = v -> showAddDocBottomSheet();
-        rvDocs.setOnClickListener(v -> showAddDocBottomSheet());
+        // 6) Cuando quieran añadir documento, pide permisos primero
+        View.OnClickListener addDocClick = v ->
+                requestPermissionsAndThen(this::showAddDocBottomSheet);
 
-        btnAddDoc.setOnClickListener(v -> showAddDocBottomSheet());
+        tvNoDocs .setOnClickListener(addDocClick);
+        rvDocs   .setOnClickListener(addDocClick);
+        btnAddDoc.setOnClickListener(addDocClick);
 
         return root;
     }
 
-    private void loadVehicleData(String vehicleId) {
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("vehicles").child(vehicleId);
+    private void loadVehicleData(String vid) {
+        DatabaseReference ref = FirebaseDatabase.getInstance()
+                .getReference("vehicles")
+                .child(vid);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot snap) {
                 Vehicle v = snap.getValue(Vehicle.class);
-                if (v != null) {
-                    tvBrandModel.setText(v.getBrand() + " " + v.getModel());
-                    tvPlate.setText(v.getPlate());
-                    tvYear.setText(v.getYear());
-                    if (imgBrandLogoDetail != null && v.getBrand() != null) {
-                        String brandRaw = v.getBrand().trim().toLowerCase();
-                        String brandDomain = brandRaw.replaceAll("\\s+", "").replaceAll("[^a-z0-9\\-]", "");
-                        String domain = brandDomain + ".com";
-                        String token = "pk_B-lbxINDRYCQG3JiIspqjg";
-                        String url = "https://img.logo.dev/" + domain + "?token=" + token + "&retina=true";
-                        Glide.with(imgBrandLogoDetail.getContext())
-                            .load(url)
-                            .placeholder(R.drawable.ic_car_placeholder)
-                            .error(R.drawable.ic_car_placeholder)
-                            .into(imgBrandLogoDetail);
-                    }
-                }
+                if (v == null) return;
+                tvBrandModel.setText(v.getBrand() + " " + v.getModel());
+                tvPlate     .setText(v.getPlate());
+                tvYear      .setText(v.getYear());
+
+                // Carga logo con Glide
+                String domain = v.getBrand()
+                        .trim().toLowerCase()
+                        .replaceAll("\\s+","")
+                        .replaceAll("[^a-z0-9\\-]","")
+                        + ".com";
+                String token = "pk_B-lbxINDRYCQG3JiIspqjg";
+                String url   = "https://img.logo.dev/" + domain
+                        + "?token=" + token + "&retina=true";
+
+                Glide.with(imgBrandLogoDetail)
+                        .load(url)
+                        .placeholder(R.drawable.ic_car_placeholder)
+                        .error(R.drawable.ic_car_placeholder)
+                        .into(imgBrandLogoDetail);
             }
-            @Override public void onCancelled(@NonNull DatabaseError error) { }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
@@ -150,239 +200,220 @@ public class VehicleDetailFragment extends Fragment {
                     if (doc != null) documents.add(doc);
                 }
                 docAdapter.notifyDataSetChanged();
-                if (documents.isEmpty()) {
-                    tvNoDocs.setVisibility(View.VISIBLE);
-                } else {
-                    tvNoDocs.setVisibility(View.GONE);
-                }
+                tvNoDocs.setVisibility(documents.isEmpty() ? View.VISIBLE : View.GONE);
             }
-            @Override public void onCancelled(@NonNull DatabaseError error) { }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    // BottomSheetDialog para elegir acción
+    private void requestPermissionsAndThen(Runnable action) {
+        pendingAction = action;
+        List<String> perms = new ArrayList<>();
+        perms.add(Manifest.permission.CAMERA);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            perms.add(Manifest.permission.READ_MEDIA_IMAGES);
+        } else {
+            perms.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+        permissionsLauncher.launch(perms.toArray(new String[0]));
+    }
+
     private void showAddDocBottomSheet() {
         BottomSheetDialog sheet = new BottomSheetDialog(requireContext());
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_doc_options, null, false);
+        View view = LayoutInflater.from(getContext())
+                .inflate(R.layout.dialog_add_doc_options, null, false);
+
         view.findViewById(R.id.optionPhoto).setOnClickListener(v -> {
             sheet.dismiss();
-            requestPhotoPermissions();
+            startActivityForResult(
+                    new Intent(MediaStore.ACTION_IMAGE_CAPTURE),
+                    RC_TAKE_PHOTO
+            );
         });
         view.findViewById(R.id.optionGallery).setOnClickListener(v -> {
             sheet.dismiss();
-            requestGalleryPermissions();
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(intent, "Selecciona una imagen"), RC_PICK_IMAGE);
         });
         view.findViewById(R.id.optionPdf).setOnClickListener(v -> {
             sheet.dismiss();
-            requestPdfPermissions();
+            Intent pdf = new Intent(Intent.ACTION_GET_CONTENT);
+            pdf.setType("application/pdf");
+            startActivityForResult(pdf, RC_PICK_PDF);
         });
+
         sheet.setContentView(view);
         sheet.show();
     }
 
-    // Métodos para pedir permisos robustos y lanzar acción
-    private void requestPhotoPermissions() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            pendingPermission = Manifest.permission.CAMERA;
-            pendingAction = this::requestPhotoPermissions;
-            singlePermissionLauncher.launch(Manifest.permission.CAMERA);
-            return;
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                pendingPermission = Manifest.permission.READ_MEDIA_IMAGES;
-                pendingAction = this::requestPhotoPermissions;
-                singlePermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES);
-                return;
-            }
-        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                pendingPermission = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-                pendingAction = this::requestPhotoPermissions;
-                singlePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                return;
-            }
-        }
-        // Todos los permisos OK
-        Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(takePicture, RC_TAKE_PHOTO);
-    }
-
-    private void requestGalleryPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                pendingPermission = Manifest.permission.READ_MEDIA_IMAGES;
-                pendingAction = this::requestGalleryPermissions;
-                singlePermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES);
-                return;
-            }
-        } else {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                pendingPermission = Manifest.permission.READ_EXTERNAL_STORAGE;
-                pendingAction = this::requestGalleryPermissions;
-                singlePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
-                return;
-            }
-        }
-        Intent pickImage = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(pickImage, RC_PICK_IMAGE);
-    }
-
-    private void requestPdfPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                pendingPermission = Manifest.permission.READ_MEDIA_IMAGES;
-                pendingAction = this::requestPdfPermissions;
-                singlePermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES);
-                return;
-            }
-        } else {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                pendingPermission = Manifest.permission.READ_EXTERNAL_STORAGE;
-                pendingAction = this::requestPdfPermissions;
-                singlePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
-                return;
-            }
-        }
-        Intent pickPdf = new Intent(Intent.ACTION_GET_CONTENT);
-        pickPdf.setType("application/pdf");
-        startActivityForResult(pickPdf, RC_PICK_PDF);
-    }
-
-    // Dialogo para ir a ajustes si el permiso está denegado permanentemente
-    private void showPermissionSettingsDialog() {
-        new AlertDialog.Builder(getContext())
-            .setTitle("Permiso requerido")
-            .setMessage("Debes conceder el permiso en Ajustes para poder añadir documentos.")
-            .setPositiveButton("Abrir ajustes", (d, w) -> {
-                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                intent.setData(android.net.Uri.parse("package:" + requireContext().getPackageName()));
-                startActivity(intent);
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
-    }
-
     @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != Activity.RESULT_OK || data == null) return;
+    public void onActivityResult(int req, int res, @Nullable Intent data) {
+        super.onActivityResult(req, res, data);
+        if (res != Activity.RESULT_OK || data == null) return;
 
-        final Uri fileUri = data.getData();
-        final Bitmap photo = (requestCode == RC_TAKE_PHOTO && data.getExtras() != null) ? 
-            (Bitmap) data.getExtras().get("data") : null;
+        Uri    fileUri = data.getData();
+        Bitmap photo   = (req == RC_TAKE_PHOTO && data.getExtras()!=null)
+                ? (Bitmap) data.getExtras().get("data")
+                : null;
 
-        // Diálogo para clasificar y nombrar el documento
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_doc, null, false);
+        // Diálogo para nombre/tipo de doc
+        View dialogView = LayoutInflater.from(getContext())
+                .inflate(R.layout.dialog_add_doc, null, false);
         EditText etDocName = dialogView.findViewById(R.id.etDocName);
         ChipGroup chipGroup = dialogView.findViewById(R.id.chipGroupDocType);
 
-        new AlertDialog.Builder(getContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Clasificar documento")
                 .setView(dialogView)
-                .setPositiveButton("Guardar", (dialog, which) -> {
-                    String docName = etDocName.getText().toString().trim();
-                    String docType = "";
-                    int checkedId = chipGroup.getCheckedChipId();
-                    if (checkedId != -1) {
-                        Chip chip = dialogView.findViewById(checkedId);
-                        docType = chip.getText().toString();
+                .setPositiveButton("Guardar", (d, w) -> {
+                    String name = etDocName.getText().toString().trim();
+                    String type = "";
+                    int checked = chipGroup.getCheckedChipId();
+                    if (checked != -1) {
+                        type = ((Chip) dialogView.findViewById(checked)).getText().toString();
                     }
                     if (photo != null) {
-                        uploadPhoto(photo, docName, docType);
+                        uploadPhoto(photo, name, type);
                     } else if (fileUri != null) {
-                        uploadFile(fileUri, docName, docType);
+                        uploadFile(fileUri, name, type);
                     }
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
 
-    private void uploadPhoto(Bitmap photo, String docName, String docType) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        photo.compress(Bitmap.CompressFormat.JPEG, 90, baos);
-        byte[] data = baos.toByteArray();
-        String fileName = "IMG_" + System.currentTimeMillis() + ".jpg";
-        StorageReference fileRef = storageRef.child(fileName);
-        fileRef.putBytes(data)
-                .addOnSuccessListener(taskSnapshot -> fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    saveDocMetadata(docName, docType, uri.toString(), "image");
-                }));
+    private void uploadPhoto(Bitmap bmp, String name, String type) {
+        String filename = "IMG_" + System.currentTimeMillis() + ".jpg";
+        File file = new File(requireContext().getFilesDir(), filename);
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            bmp.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            String localPath = file.getAbsolutePath();
+            Document doc = new Document(name, type, localPath, System.currentTimeMillis(), "image");
+            localDocuments.add(doc);
+            saveLocalDocuments(vehicleId, localDocuments);
+            docAdapter.notifyDataSetChanged();
+            tvNoDocs.setVisibility(localDocuments.isEmpty() ? View.VISIBLE : View.GONE);
+            Toast.makeText(getContext(), "Documento guardado localmente", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Error guardando documento local", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
     }
 
-    private void uploadFile(Uri fileUri, String docName, String docType) {
-        String fileName = "DOC_" + System.currentTimeMillis();
-        StorageReference fileRef = storageRef.child(fileName);
-        fileRef.putFile(fileUri)
-                .addOnSuccessListener(taskSnapshot -> fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    String type = fileUri.toString().endsWith(".pdf") ? "pdf" : "image";
-                    saveDocMetadata(docName, docType, uri.toString(), type);
-                }));
+    private void uploadFile(Uri uri, String name, String type) {
+        String filename = "DOC_" + System.currentTimeMillis();
+        File file = new File(requireContext().getFilesDir(), filename);
+        try (InputStream in = requireContext().getContentResolver().openInputStream(uri);
+             FileOutputStream out = new FileOutputStream(file)) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+            String localPath = file.getAbsolutePath();
+            String fileType = uri.toString().endsWith(".pdf") ? "pdf" : "image";
+            Document doc = new Document(name, type, localPath, System.currentTimeMillis(), fileType);
+            localDocuments.add(doc);
+            saveLocalDocuments(vehicleId, localDocuments);
+            docAdapter.notifyDataSetChanged();
+            tvNoDocs.setVisibility(localDocuments.isEmpty() ? View.VISIBLE : View.GONE);
+            Toast.makeText(getContext(), "Documento guardado localmente", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Error guardando documento local", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
     }
 
-    private void saveDocMetadata(String name, String type, String url, String fileType) {
-        String key = docsRef.push().getKey();
-        Document doc = new Document(name, type, url, System.currentTimeMillis(), fileType);
-        docsRef.child(key).setValue(doc);
-    }
-
-    // Modelo simple de documento
+    // Modelo de documento
     public static class Document {
         public String name, type, url, fileType;
-        public long date;
+        public long   date;
         public Document() {}
-        public Document(String name, String type, String url, long date, String fileType) {
-            this.name = name; this.type = type; this.url = url; this.date = date; this.fileType = fileType;
+        public Document(String n, String t, String u, long d, String ft) {
+            name = n; type = t; url = u; date = d; fileType = ft;
         }
     }
 
-    // Adaptador para la lista de documentos
-    static class DocumentAdapter extends RecyclerView.Adapter<DocumentAdapter.DocViewHolder> {
-        List<Document> docs;
+    // Adapter interno
+    static class DocumentAdapter
+            extends RecyclerView.Adapter<DocumentAdapter.DocVH> {
+        private final List<Document> docs;
         DocumentAdapter(List<Document> docs) { this.docs = docs; }
-        @NonNull
-        @Override
-        public DocViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_document, parent, false);
-            return new DocViewHolder(v);
+        @NonNull @Override
+        public DocVH onCreateViewHolder(@NonNull ViewGroup p, int v) {
+            View iv = LayoutInflater.from(p.getContext())
+                    .inflate(R.layout.item_document, p, false);
+            return new DocVH(iv);
         }
         @Override
-        public void onBindViewHolder(@NonNull DocViewHolder h, int pos) {
+        public void onBindViewHolder(@NonNull DocVH h, int pos) {
             Document d = docs.get(pos);
             h.tvName.setText(d.name);
             h.tvType.setText(d.type);
             h.tvDate.setText(DateFormat.format("dd/MM/yyyy", d.date));
-            if (d.fileType != null && d.fileType.equals("image")) {
-                Glide.with(h.itemView.getContext()).load(d.url).into(h.imgThumb);
+            if ("image".equals(d.fileType)) {
+                Glide.with(h.itemView).load(new File(d.url)).into(h.imgThumb);
             } else {
                 h.imgThumb.setImageResource(R.drawable.ic_document);
             }
-            h.itemView.setOnClickListener(view -> {
-                if (d.fileType != null && d.fileType.equals("image")) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
-                    ImageView img = new ImageView(view.getContext());
-                    Glide.with(view.getContext()).load(d.url).into(img);
-                    builder.setView(img).setPositiveButton("Cerrar", null).show();
-                } else if (d.fileType != null && d.fileType.equals("pdf")) {
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setDataAndType(Uri.parse(d.url), "application/pdf");
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                    view.getContext().startActivity(intent);
+            h.itemView.setOnClickListener(v -> {
+                if ("image".equals(d.fileType)) {
+                    File file = new File(d.url);
+                    Context context = v.getContext();
+                    Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            context.getPackageName() + ".provider",
+                            file
+                    );
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setDataAndType(uri, "image/*");
+                    i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    context.startActivity(i);
+                } else {
+                    File file = new File(d.url);
+                    Context context = v.getContext();
+                    Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            context.getPackageName() + ".provider",
+                            file
+                    );
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setDataAndType(uri, "application/pdf");
+                    i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    context.startActivity(i);
                 }
             });
         }
-        @Override
-        public int getItemCount() { return docs.size(); }
-        static class DocViewHolder extends RecyclerView.ViewHolder {
+        @Override public int getItemCount() { return docs.size(); }
+
+        static class DocVH extends RecyclerView.ViewHolder {
             ImageView imgThumb;
-            TextView tvName, tvType, tvDate;
-            DocViewHolder(View v) {
+            TextView  tvName, tvType, tvDate;
+            DocVH(@NonNull View v) {
                 super(v);
                 imgThumb = v.findViewById(R.id.imgDocThumb);
-                tvName = v.findViewById(R.id.tvDocName);
-                tvType = v.findViewById(R.id.tvDocType);
-                tvDate = v.findViewById(R.id.tvDocDate);
+                tvName   = v.findViewById(R.id.tvDocName);
+                tvType   = v.findViewById(R.id.tvDocType);
+                tvDate   = v.findViewById(R.id.tvDocDate);
             }
         }
     }
-} 
+
+    private void saveLocalDocuments(String vehicleId, List<Document> docs) {
+        String json = gson.toJson(docs);
+        requireContext().getSharedPreferences(PREFS_NAME, 0)
+            .edit()
+            .putString(PREFS_KEY_PREFIX + vehicleId, json)
+            .apply();
+    }
+
+    private List<Document> loadLocalDocuments(String vehicleId) {
+        String json = requireContext().getSharedPreferences(PREFS_NAME, 0)
+            .getString(PREFS_KEY_PREFIX + vehicleId, null);
+        if (json == null) return new ArrayList<>();
+        return gson.fromJson(json, new TypeToken<List<Document>>(){}.getType());
+    }
+}

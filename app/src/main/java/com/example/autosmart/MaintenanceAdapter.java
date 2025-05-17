@@ -63,20 +63,20 @@ public class MaintenanceAdapter
         android.util.Log.d("MaintenanceAdapter", "Binding item at pos " + pos + ": " + m.vehicleId);
 
         // Vehículo (o "Desconocido" si no está en el mapa)
-        String vehLabel = "🚗 Desconocido";
+        String vehLabel = "Desconocido";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             vehLabel = labelById.getOrDefault(m.vehicleId, vehLabel);
         }
         h.tvVehicle.setText(vehLabel);
 
-        // Fecha, tipo, coste y matrícula con emojis
-        h.tvDate .setText("🗓 " + m.date);
-        h.tvType .setText("🔧 " + m.type);
-        h.tvCost .setText("💶 " + String.format("%.2f", m.cost));
-        h.tvPlate.setText("🪪 " + m.vehiclePlate);
+        // Fecha, tipo, coste y matrícula sin emojis
+        h.tvDate.setText(m.date);
+        h.tvType.setText(m.type);
+        h.tvCost.setText(String.format("%.2f €", m.cost));
+        h.tvPlate.setText(m.vehiclePlate);
 
         // Botones de acción
-        h.btnEdit .setOnClickListener(v -> listener.onEdit(m));
+        h.btnEdit.setOnClickListener(v -> listener.onEdit(m));
         h.btnDelete.setOnClickListener(v -> listener.onDelete(m));
     }
 
