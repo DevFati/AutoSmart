@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -69,7 +70,7 @@ public class MaintenanceFragment extends Fragment {
             @Override
             public void onDelete(MaintenanceEntity m) {
                 dao.delete(m);
-                Toast.makeText(getContext(), "🗑️ Mantenimiento eliminado", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Mantenimiento eliminado", Toast.LENGTH_SHORT).show();
             }
         });
         rv.setAdapter(adapter);
@@ -81,11 +82,21 @@ public class MaintenanceFragment extends Fragment {
         vehicleLabels.add("Todos los vehículos");
 
         vehicleIds   .add(null);
-        vehicleSpinnerAdapter = new ArrayAdapter<>(
+        vehicleSpinnerAdapter = new ArrayAdapter<String>(
                 requireContext(),
-                android.R.layout.simple_dropdown_item_1line,
+                R.layout.item_vehicle_dropdown,
+                R.id.tvVehicleName,
                 vehicleLabels
-        );
+        ) {
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                View view = super.getDropDownView(position, convertView, parent);
+                ImageView icon = view.findViewById(R.id.ivVehicleIcon);
+                // Puedes personalizar el icono según el tipo de vehículo si lo deseas
+                // icon.setImageResource(...);
+                return view;
+            }
+        };
         spinnerVehicles.setAdapter(vehicleSpinnerAdapter);
 
         // Listener de selección
