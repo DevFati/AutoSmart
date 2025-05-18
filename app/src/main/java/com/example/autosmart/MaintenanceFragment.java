@@ -10,6 +10,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,8 @@ public class MaintenanceFragment extends Fragment {
     private AutoCompleteTextView spinnerVehicles;
     private RecyclerView rv;
     private MaterialButton fab;
+    private TextView tvNoVehiclesMaint;
+    private CardView emptyState;
 
     private MaintenanceAdapter adapter;
     private MaintenanceDao dao;
@@ -54,8 +57,8 @@ public class MaintenanceFragment extends Fragment {
         spinnerVehicles = root.findViewById(R.id.spinnerVehicle);
         rv              = root.findViewById(R.id.recyclerMaintenance);
         fab             = root.findViewById(R.id.fabAddMaintenance);
-        CardView emptyState = root.findViewById(R.id.emptyState);
-
+        emptyState      = root.findViewById(R.id.emptyState);
+        tvNoVehiclesMaint = root.findViewById(R.id.tvNoVehiclesMaint);
 
         // DAO + Recycler
         dao = AppDatabase.getInstance(requireContext()).maintenanceDao();
@@ -101,52 +104,51 @@ public class MaintenanceFragment extends Fragment {
 
         // Listener de selección
         spinnerVehicles.setOnItemClickListener((parent, view, pos, id) -> {
-            String vehId = vehicleIds.get(pos);
-            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            
-            if (vehId == null) {
-                // TODOS
-                dao.loadAll(userId).observe(getViewLifecycleOwner(), list -> {
-                    adapter.setItems(list);
-                    if (list == null || list.isEmpty()) {
-                        rv.setVisibility(View.GONE);
-                        emptyState.setVisibility(View.VISIBLE);
-                    } else {
-                        rv.setVisibility(View.VISIBLE);
-                        emptyState.setVisibility(View.GONE);
-                    }
-                });
-            } else {
-                // SOLO ESE VEHÍCULO
-                dao.loadForVehicle(userId, vehId).observe(getViewLifecycleOwner(), list -> {
-                    adapter.setItems(list);
-                    if (list == null || list.isEmpty()) {
-                        rv.setVisibility(View.GONE);
-                        emptyState.setVisibility(View.VISIBLE);
-                    } else {
-                        rv.setVisibility(View.VISIBLE);
-                        emptyState.setVisibility(View.GONE);
-                    }
-                });
-            }
+            filterMaintenancesByVehicle(pos);
         });
 
         // Trae tus vehículos para el filtro
         loadVehiclesIntoSpinner();
 
-        // Forzar selección inicial
-        spinnerVehicles.setText("Todos los vehículos", false);
-
-        // FAB → añadir nuevo mantenimiento
-        fab.setOnClickListener(v ->
-                startActivityForResult(
-                        new Intent(getContext(), AddMaintenanceActivity.class),
-                        RC_ADD_MAINT
-                )
-        );
-
+        fab.setOnClickListener(v -> {
+            Toast.makeText(getContext(), "Botón Añadir mantenimiento pulsado", Toast.LENGTH_SHORT).show();
+            startActivityForResult(
+                new Intent(getContext(), AddMaintenanceActivity.class),
+                RC_ADD_MAINT
+            );
+        });
 
         return root;
+    }
+
+    private void filterMaintenancesByVehicle(int pos) {
+        String vehId = vehicleIds.get(pos);
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (vehId == null) {
+            // TODOS
+            dao.loadAll(userId).observe(getViewLifecycleOwner(), list -> {
+                adapter.setItems(list);
+                if (list == null || list.isEmpty()) {
+                    rv.setVisibility(View.GONE);
+                    emptyState.setVisibility(View.VISIBLE);
+                } else {
+                    rv.setVisibility(View.VISIBLE);
+                    emptyState.setVisibility(View.GONE);
+                }
+            });
+        } else {
+            // SOLO ESE VEHÍCULO
+            dao.loadForVehicle(userId, vehId).observe(getViewLifecycleOwner(), list -> {
+                adapter.setItems(list);
+                if (list == null || list.isEmpty()) {
+                    rv.setVisibility(View.GONE);
+                    emptyState.setVisibility(View.VISIBLE);
+                } else {
+                    rv.setVisibility(View.VISIBLE);
+                    emptyState.setVisibility(View.GONE);
+                }
+            });
+        }
     }
 
     /** Carga vehículos del usuario y mantiene "Todos…" en posición 0 */
@@ -170,7 +172,6 @@ public class MaintenanceFragment extends Fragment {
                             Vehicle v = ds.getValue(Vehicle.class);
                             if (v != null) {
                                 String label = v.getBrand()
-
                                         + " " + v.getModel()
                                         + " (" + v.getYear() + ")";
                                 vehicleLabels.add(label);
@@ -180,6 +181,24 @@ public class MaintenanceFragment extends Fragment {
                         }
                         vehicleSpinnerAdapter.notifyDataSetChanged();
                         adapter.setLabelById(new HashMap<>(vehicleLabelById));
+                        if (vehicleLabels.size() <= 1) {
+                            tvNoVehiclesMaint.setVisibility(View.VISIBLE);
+                            spinnerVehicles.setVisibility(View.GONE);
+                            rv.setVisibility(View.GONE);
+                            fab.setVisibility(View.GONE);
+                            emptyState.setVisibility(View.GONE);
+                        } else {
+                            tvNoVehiclesMaint.setVisibility(View.GONE);
+                            spinnerVehicles.setVisibility(View.VISIBLE);
+                            rv.setVisibility(View.VISIBLE);
+                            fab.setVisibility(View.VISIBLE);
+                            emptyState.setVisibility(View.GONE);
+                            // Dispara el filtro inicial correctamente
+                            spinnerVehicles.post(() -> {
+                                spinnerVehicles.setText("Todos los vehículos", false);
+                                filterMaintenancesByVehicle(0);
+                            });
+                        }
                     }
                     @Override
                     public void onCancelled(@NonNull DatabaseError err) {
@@ -196,7 +215,6 @@ public class MaintenanceFragment extends Fragment {
         if (requestCode == RC_ADD_MAINT && resultCode == Activity.RESULT_OK) {
             Toast.makeText(getContext(),
                     "Mantenimiento guardado",
-
                     Toast.LENGTH_SHORT
             ).show();
             // LiveData vuelve a dispararse automáticamente
