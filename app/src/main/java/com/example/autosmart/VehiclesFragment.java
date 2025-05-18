@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,6 +35,7 @@ public class VehiclesFragment extends Fragment {
     private VehicleAdapter adapter;
     private List<Vehicle> vehicleList = new ArrayList<>();
     private MaintenanceDao maintenanceDao;
+    private TextView tvNoVehicles;
 
     // Referencia raíz y consulta filtrada
     private DatabaseReference rootRef;
@@ -49,6 +51,7 @@ public class VehiclesFragment extends Fragment {
         recyclerView = root.findViewById(R.id.recyclerVehicles);
         progressBar  = root.findViewById(R.id.progressVehicles);
         fab          = root.findViewById(R.id.fabAddVehicle);
+        tvNoVehicles = root.findViewById(R.id.tvNoVehicles);
         maintenanceDao = AppDatabase.getInstance(requireContext()).maintenanceDao();
 
         // 1) Configura RecyclerView + Adapter
@@ -110,6 +113,14 @@ public class VehiclesFragment extends Fragment {
                 }
                 adapter.notifyDataSetChanged();
                 progressBar.setVisibility(View.GONE);
+                // Mostrar/ocultar mensaje de lista vacía
+                if (vehicleList.isEmpty()) {
+                    tvNoVehicles.setVisibility(View.VISIBLE);
+                    recyclerView.setVisibility(View.GONE);
+                } else {
+                    tvNoVehicles.setVisibility(View.GONE);
+                    recyclerView.setVisibility(View.VISIBLE);
+                }
             }
             @Override
             public void onCancelled(@NonNull DatabaseError err) {
