@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="white">#FFFFFF</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="nav_header_bg">#FF5722</color> <!-- Un color naranja, por ejemplo -->
 
@@ -11,8 +11,11 @@
     <!-- /res/values/colors.xml -->
     <color name="gray_light">#F5F5F5</color>
 
-    <color name="purple_700">#7B1FA2</color>
+    <color name="purple_700">#6C3DD6</color>
     <color name="purple_200">#BB86FC</color>
-    <color name="red_500">#F44336</color>
+    <color name="red_500">#E53935</color>
+    <color name="blue_500">#1E88E5</color>
+    <color name="orange_500">#FB8C00</color>
+    <color name="purple_50">#F5F0FF</color>
 
 </resources>

@@ -44,8 +44,8 @@ public class MapsFragment extends Fragment {
     private MyLocationNewOverlay myLocationOverlay;
     private IMapController mapController;
     private TextInputEditText searchLocation;
-    private View placeInfoCard;
-    private TextView placeName, placeInfo;
+    private View cardStationInfo;
+    private TextView tvStationName, tvStationAddress, tvFuels, tvServices, tvSchedule;
     private OkHttpClient client;
     private Marker lastClickedMarker = null;
 
@@ -63,9 +63,13 @@ public class MapsFragment extends Fragment {
 
         map = root.findViewById(R.id.map);
         searchLocation = root.findViewById(R.id.searchLocation);
-        placeInfoCard = root.findViewById(R.id.placeInfoCard);
-        placeName = root.findViewById(R.id.placeName);
-        placeInfo = root.findViewById(R.id.placeInfo);
+        View include = root.findViewById(R.id.includeStationInfo);
+        cardStationInfo = include;
+        tvStationName = include.findViewById(R.id.tvStationName);
+        tvStationAddress = include.findViewById(R.id.tvStationAddress);
+        tvFuels = include.findViewById(R.id.tvFuels);
+        tvServices = include.findViewById(R.id.tvServices);
+        tvSchedule = include.findViewById(R.id.tvSchedule);
 
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
@@ -267,34 +271,15 @@ public class MapsFragment extends Fragment {
 
                                         // Servicios adicionales
                                         info.append("\n🛠️ Servicios\n");
-                                        boolean hasServices = false;
-                                        if (tags.optString("shop", "no").equals("yes")) {
-                                            info.append("  • Tienda\n");
-                                            hasServices = true;
-                                        }
-                                        if (tags.optString("car_wash", "no").equals("yes")) {
-                                            info.append("  • Lavado de coches\n");
-                                            hasServices = true;
-                                        }
-                                        if (tags.optString("compressed_air", "no").equals("yes")) {
-                                            info.append("  • Aire comprimido\n");
-                                            hasServices = true;
-                                        }
-                                        if (tags.optString("toilets", "no").equals("yes")) {
-                                            info.append("  • Baños\n");
-                                            hasServices = true;
-                                        }
-                                        if (tags.optString("atm", "no").equals("yes")) {
-                                            info.append("  • Cajero automático\n");
-                                            hasServices = true;
-                                        }
-                                        if (tags.optString("restaurant", "no").equals("yes")) {
-                                            info.append("  • Restaurante\n");
-                                            hasServices = true;
-                                        }
-                                        if (!hasServices) {
-                                            info.append("  • No disponible\n");
-                                        }
+                                        StringBuilder servicesCard = new StringBuilder();
+                                        boolean hasServicesCard = false;
+                                        if (tags.optString("shop", "no").equals("yes")) { servicesCard.append("Tienda, "); hasServicesCard = true; }
+                                        if (tags.optString("car_wash", "no").equals("yes")) { servicesCard.append("Lavado de coches, "); hasServicesCard = true; }
+                                        if (tags.optString("compressed_air", "no").equals("yes")) { servicesCard.append("Aire comprimido, "); hasServicesCard = true; }
+                                        if (tags.optString("toilets", "no").equals("yes")) { servicesCard.append("Baños, "); hasServicesCard = true; }
+                                        if (tags.optString("atm", "no").equals("yes")) { servicesCard.append("Cajero automático, "); hasServicesCard = true; }
+                                        if (tags.optString("restaurant", "no").equals("yes")) { servicesCard.append("Restaurante, "); hasServicesCard = true; }
+                                        String servicesStr = hasServicesCard ? servicesCard.substring(0, servicesCard.length()-2) : "No disponible";
 
                                         // Horario
                                         String openingHours = tags.optString("opening_hours", "");
@@ -307,15 +292,27 @@ public class MapsFragment extends Fragment {
 
                                         marker.setOnMarkerClickListener((marker1, mapView) -> {
                                             // Si se hace clic en el mismo marcador, ocultar la tarjeta
-                                            if (placeInfoCard.getVisibility() == View.VISIBLE && 
-                                                placeName.getText().toString().equals(name)) {
-                                                placeInfoCard.animate()
+                                            if (cardStationInfo.getVisibility() == View.VISIBLE && 
+                                                tvStationName.getText().toString().equals(name)) {
+                                                cardStationInfo.animate()
                                                         .alpha(0f)
                                                         .setDuration(300)
-                                                        .withEndAction(() -> placeInfoCard.setVisibility(View.GONE))
+                                                        .withEndAction(() -> cardStationInfo.setVisibility(View.GONE))
                                                         .start();
                                             } else {
-                                                showPlaceInfo(name, info.toString());
+                                                // Dirección
+                                                String address = tags.optString("addr:full", tags.optString("addr:street", "No disponible"));
+                                                // Combustibles
+                                                StringBuilder fuelsCard = new StringBuilder();
+                                                boolean hasFuelCard = false;
+                                                if (tags.optString("fuel:octane_95", "no").equals("yes")) { fuelsCard.append("Gasolina 95, "); hasFuelCard = true; }
+                                                if (tags.optString("fuel:octane_98", "no").equals("yes")) { fuelsCard.append("Gasolina 98, "); hasFuelCard = true; }
+                                                if (tags.optString("fuel:diesel", "no").equals("yes")) { fuelsCard.append("Diésel, "); hasFuelCard = true; }
+                                                if (tags.optString("fuel:lpg", "no").equals("yes")) { fuelsCard.append("GLP, "); hasFuelCard = true; }
+                                                if (hasElectric) { fuelsCard.append("Cargador eléctrico, "); hasFuelCard = true; }
+                                                String fuelsStr = hasFuelCard ? fuelsCard.substring(0, fuelsCard.length()-2) : "No disponible";
+                                                // Servicios
+                                                showPlaceInfo(name, address, fuelsStr, servicesStr, openingHours);
                                             }
                                             return true;
                                         });
@@ -338,25 +335,20 @@ public class MapsFragment extends Fragment {
         });
     }
 
-    private void showPlaceInfo(String name, String info) {
-        // Si la tarjeta está visible, actualizar la información directamente
-        if (placeInfoCard.getVisibility() == View.VISIBLE) {
-            placeName.setText(name);
-            placeInfo.setText(info);
-            return;
+    private void showPlaceInfo(String name, String address, String fuels, String services, String schedule) {
+        tvStationName.setText(name);
+        tvStationAddress.setText(address);
+        tvFuels.setText(fuels);
+        tvServices.setText(services);
+        tvSchedule.setText(schedule);
+        if (cardStationInfo.getVisibility() != View.VISIBLE) {
+            cardStationInfo.setAlpha(0f);
+            cardStationInfo.setVisibility(View.VISIBLE);
+            cardStationInfo.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start();
         }
-
-        // Si la tarjeta está oculta, mostrarla con la nueva información
-        placeName.setText(name);
-        placeInfo.setText(info);
-        placeInfoCard.setVisibility(View.VISIBLE);
-        
-        // Añadir animación de entrada
-        placeInfoCard.setAlpha(0f);
-        placeInfoCard.animate()
-                .alpha(1f)
-                .setDuration(300)
-                .start();
     }
 
     private void centerOnMyLocation() {
