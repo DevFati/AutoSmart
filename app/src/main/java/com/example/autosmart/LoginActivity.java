@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -26,6 +27,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.android.gms.common.SignInButton;
+import android.app.AlertDialog;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.core.content.ContextCompat;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -34,7 +38,8 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword;
     private Button btnLogin, btnRegister;
     private FirebaseAuth mAuth;
-    private SignInButton btnGoogleSignIn;
+    private Button btnGoogle;
+    private TextView tvForgotPassword;
 
     // Cliente de Google Sign-In y código de solicitud
     private GoogleSignInClient mGoogleSignInClient;
@@ -53,7 +58,8 @@ public class LoginActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etPassword);
         btnLogin = findViewById(R.id.btnLogin);
         btnRegister = findViewById(R.id.btnRegister);
-        btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn);
+        btnGoogle = findViewById(R.id.btnGoogle);
+        tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
         // Configurar Google Sign-In
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -72,9 +78,7 @@ public class LoginActivity extends AppCompatActivity {
                 if (!email.isEmpty() && !password.isEmpty()) {
                     signInUser(email, password);
                 } else {
-                    Toast.makeText(LoginActivity.this,
-                            "Por favor, llena todos los campos",
-                            Toast.LENGTH_SHORT).show();
+                    showErrorSnackbar("Por favor, llena todos los campos");
                 }
             }
         });
@@ -88,18 +92,23 @@ public class LoginActivity extends AppCompatActivity {
                 if (!email.isEmpty() && !password.isEmpty()) {
                     registerUser(email, password);
                 } else {
-                    Toast.makeText(LoginActivity.this,
-                            "Por favor, llena todos los campos",
-                            Toast.LENGTH_SHORT).show();
+                    showErrorSnackbar("Por favor, llena todos los campos");
                 }
             }
         });
 
         // Listener para Google Sign-In
-        btnGoogleSignIn.setOnClickListener(new View.OnClickListener() {
+        btnGoogle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 signInWithGoogle();
+            }
+        });
+
+        tvForgotPassword.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showForgotPasswordDialog();
             }
         });
     }
@@ -124,9 +133,7 @@ public class LoginActivity extends AppCompatActivity {
                             FirebaseUser user = mAuth.getCurrentUser();
                             updateUI(user);
                         } else {
-                            Toast.makeText(LoginActivity.this,
-                                    "Error en inicio de sesión: " + task.getException().getMessage(),
-                                    Toast.LENGTH_SHORT).show();
+                            showErrorSnackbar("Error en inicio de sesión: " + task.getException().getMessage());
                         }
                     }
                 });
@@ -142,9 +149,10 @@ public class LoginActivity extends AppCompatActivity {
                             FirebaseUser user = mAuth.getCurrentUser();
                             updateUI(user);
                         } else {
-                            Toast.makeText(LoginActivity.this,
-                                    "Error en registro: " + task.getException().getMessage(),
-                                    Toast.LENGTH_SHORT).show();
+                            String msg = task.getException() != null && task.getException().getMessage().toLowerCase().contains("password")
+                                    ? "La contraseña debe tener al menos 6 caracteres."
+                                    : "Error en registro: " + task.getException().getMessage();
+                            showErrorSnackbar(msg);
                         }
                     }
                 });
@@ -218,5 +226,43 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    private void showForgotPasswordDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_forgot_password, null);
+        final com.google.android.material.textfield.TextInputEditText etDialogEmail = dialogView.findViewById(R.id.etDialogEmail);
 
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Recuperar contraseña")
+            .setView(dialogView)
+            .setPositiveButton("ENVIAR", (dialog, which) -> {
+                String email = etDialogEmail.getText().toString().trim();
+                if (!email.isEmpty()) {
+                    mAuth.sendPasswordResetEmail(email)
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                showSuccessSnackbar("Te hemos enviado un correo para recuperar tu contraseña.");
+                            } else {
+                                showErrorSnackbar("Error: " + (task.getException() != null ? task.getException().getMessage() : ""));
+                            }
+                        });
+                } else {
+                    showErrorSnackbar("Introduce un email válido");
+                }
+            })
+            .setNegativeButton("CANCELAR", null)
+            .show();
+    }
+
+    private void showErrorSnackbar(String message) {
+        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG);
+        snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.red_500));
+        snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        snackbar.show();
+    }
+
+    private void showSuccessSnackbar(String message) {
+        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG);
+        snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.blue_500));
+        snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        snackbar.show();
+    }
 }
