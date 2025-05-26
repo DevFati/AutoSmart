@@ -37,6 +37,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -296,7 +297,7 @@ public class VehicleDetailFragment extends Fragment {
             saveLocalDocuments(vehicleId, localDocuments);
             docAdapter.notifyDataSetChanged();
             tvNoDocs.setVisibility(localDocuments.isEmpty() ? View.VISIBLE : View.GONE);
-            Toast.makeText(getContext(), "Documento guardado localmente", Toast.LENGTH_SHORT).show();
+            showSavedSnackbar();
         } catch (Exception e) {
             Toast.makeText(getContext(), "Error guardando documento local", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
@@ -320,11 +321,21 @@ public class VehicleDetailFragment extends Fragment {
             saveLocalDocuments(vehicleId, localDocuments);
             docAdapter.notifyDataSetChanged();
             tvNoDocs.setVisibility(localDocuments.isEmpty() ? View.VISIBLE : View.GONE);
-            Toast.makeText(getContext(), "Documento guardado localmente", Toast.LENGTH_SHORT).show();
+            showSavedSnackbar();
         } catch (Exception e) {
             Toast.makeText(getContext(), "Error guardando documento local", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
         }
+    }
+
+    private void showSavedSnackbar() {
+        View rootView = getView();
+        if (rootView == null) return;
+        Snackbar snackbar = Snackbar.make(rootView, "  Documento guardado localmente", Snackbar.LENGTH_LONG);
+        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.purple_500));
+        snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+        snackbar.setAction("OK", v -> {});
+        snackbar.show();
     }
 
     // Modelo de documento

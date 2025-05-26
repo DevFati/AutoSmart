@@ -23,6 +23,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -111,7 +113,6 @@ public class MaintenanceFragment extends Fragment {
         loadVehiclesIntoSpinner();
 
         fab.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Botón Añadir mantenimiento pulsado", Toast.LENGTH_SHORT).show();
             startActivityForResult(
                 new Intent(getContext(), AddMaintenanceActivity.class),
                 RC_ADD_MAINT
@@ -213,11 +214,18 @@ public class MaintenanceFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RC_ADD_MAINT && resultCode == Activity.RESULT_OK) {
-            Toast.makeText(getContext(),
-                    "Mantenimiento guardado",
-                    Toast.LENGTH_SHORT
-            ).show();
+            showSavedSnackbar();
             // LiveData vuelve a dispararse automáticamente
         }
+    }
+
+    private void showSavedSnackbar() {
+        View rootView = getView();
+        if (rootView == null) return;
+        Snackbar snackbar = Snackbar.make(rootView, "  Mantenimiento guardado", Snackbar.LENGTH_LONG);
+        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.blue_500));
+        snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+        snackbar.setAction("OK", v -> {});
+        snackbar.show();
     }
 }

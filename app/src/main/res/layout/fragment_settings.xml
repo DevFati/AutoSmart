@@ -78,18 +78,6 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Idioma"
-                    android:textStyle="bold"
-                    android:textSize="16sp" />
-                <Spinner
-                    android:id="@+id/spinnerLanguage"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
                     android:text="Tema"
                     android:textStyle="bold"
                     android:textSize="16sp" />
@@ -108,11 +96,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Oscuro" />
-                    <RadioButton
-                        android:id="@+id/rbSystem"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Auto" />
                 </RadioGroup>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -186,6 +169,15 @@
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Botones de sesión y cuenta -->
+        <Button
+            android:id="@+id/btnSaveSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Guardar cambios"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/blue_500"
+            android:layout_marginBottom="16dp"
+            android:textStyle="bold" />
         <Button
             android:id="@+id/btnLogout"
             android:layout_width="match_parent"

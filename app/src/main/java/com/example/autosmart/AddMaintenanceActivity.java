@@ -1,27 +1,46 @@
 package com.example.autosmart;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.DatePickerDialog;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.PackageManagerCompat;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 /**
  * Activity para agregar o editar un mantenimiento.
@@ -30,7 +49,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
     public static final String EXTRA_MAINT_ID   = "maintenance_id";
 
     private MaterialAutoCompleteTextView spinnerVehicles;
-    private TextInputEditText etDate, etType, etDesc, etCost, etPlate;
+    private TextInputEditText etDate, etTime, etType, etDesc, etCost, etPlate;
     private MaterialButton btnSave;
 
     private MaintenanceDao dao;
@@ -43,6 +62,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
     private String pendingVehicleId = null;
     private String pendingPlate = null;
 
+    @SuppressLint("WrongViewCast")
     @Override
     protected void onCreate(@Nullable Bundle saved) {
         super.onCreate(saved);
@@ -51,6 +71,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         // 1) Encuentra todas las vistas (IDs deben coincidir con tu XML)
         spinnerVehicles = findViewById(R.id.spinnerVehicle);
         etDate          = findViewById(R.id.etDate);
+        etTime          = findViewById(R.id.etTime);
         etType          = findViewById(R.id.etType);
         etDesc          = findViewById(R.id.etDesc);
         etCost          = findViewById(R.id.etCost);
@@ -80,6 +101,29 @@ public class AddMaintenanceActivity extends AppCompatActivity {
             DatePickerDialog picker = new DatePickerDialog(
                     this,
                     (view, year, month, day) -> {
+                        Calendar selectedDate = Calendar.getInstance();
+                        selectedDate.set(year, month, day);
+                        
+                        // Si la fecha seleccionada es hoy, verificar la hora
+                        if (selectedDate.get(Calendar.YEAR) == hoy.get(Calendar.YEAR) &&
+                            selectedDate.get(Calendar.MONTH) == hoy.get(Calendar.MONTH) &&
+                            selectedDate.get(Calendar.DAY_OF_MONTH) == hoy.get(Calendar.DAY_OF_MONTH)) {
+                            // Si es hoy, la hora mínima debe ser la actual
+                            String currentTime = etTime.getText().toString();
+                            if (!currentTime.isEmpty()) {
+                                String[] timeParts = currentTime.split(":");
+                                int currentHour = Integer.parseInt(timeParts[0]);
+                                int currentMinute = Integer.parseInt(timeParts[1]);
+                                if (currentHour < hoy.get(Calendar.HOUR_OF_DAY) ||
+                                    (currentHour == hoy.get(Calendar.HOUR_OF_DAY) && 
+                                     currentMinute < hoy.get(Calendar.MINUTE))) {
+                                    etTime.setText(String.format("%02d:%02d", 
+                                        hoy.get(Calendar.HOUR_OF_DAY), 
+                                        hoy.get(Calendar.MINUTE)));
+                                }
+                            }
+                        }
+                        
                         etDate.setText(String.format("%04d-%02d-%02d",
                                 year, month+1, day));
                     },
@@ -91,7 +135,41 @@ public class AddMaintenanceActivity extends AppCompatActivity {
             picker.show();
         });
 
-        // 5) Si viene EXTRA_MAINT_ID, cargo para editar
+        // 5) TimePicker
+        etTime.setFocusable(false);
+        etTime.setClickable(true);
+        etTime.setOnClickListener(v -> {
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+            int minute = now.get(Calendar.MINUTE);
+            
+            // Verificar si la fecha seleccionada es hoy
+            String selectedDate = etDate.getText().toString();
+            if (!selectedDate.isEmpty()) {
+                String[] dateParts = selectedDate.split("-");
+                Calendar selectedCal = Calendar.getInstance();
+                selectedCal.set(
+                    Integer.parseInt(dateParts[0]),
+                    Integer.parseInt(dateParts[1]) - 1,
+                    Integer.parseInt(dateParts[2])
+                );
+                
+                Calendar today = Calendar.getInstance();
+                if (selectedCal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                    selectedCal.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
+                    selectedCal.get(Calendar.DAY_OF_MONTH) == today.get(Calendar.DAY_OF_MONTH)) {
+                    // Si es hoy, usar la hora actual como mínima
+                    hour = today.get(Calendar.HOUR_OF_DAY);
+                    minute = today.get(Calendar.MINUTE);
+                }
+            }
+            
+            new android.app.TimePickerDialog(this, (view, h, m) -> {
+                etTime.setText(String.format("%02d:%02d", h, m));
+            }, hour, minute, true).show();
+        });
+
+        // 6) Si viene EXTRA_MAINT_ID, cargo para editar
         if (getIntent().hasExtra(EXTRA_MAINT_ID)) {
             editingId = getIntent().getLongExtra(EXTRA_MAINT_ID, -1);
             if (editingId >= 0) {
@@ -103,6 +181,12 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                     etCost.setText(String.valueOf(exist.cost));
                     pendingVehicleId = exist.vehicleId;
                     pendingPlate = exist.vehiclePlate;
+                    // Si la hora está en la fecha ("2025-05-01 14:30"), sepárala
+                    if (exist.date != null && exist.date.contains(" ")) {
+                        String[] parts = exist.date.split(" ");
+                        etDate.setText(parts[0]);
+                        etTime.setText(parts[1]);
+                    }
                 }
             }
         }
@@ -122,7 +206,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
             pendingPlate = null;
         }
 
-        // 6) Botón Guardar
+        // 7) Botón Guardar
         btnSave.setOnClickListener(v -> saveMaintenance());
 
         // Agregar listener para actualizar la matrícula
@@ -160,6 +244,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         DatabaseReference ref = FirebaseDatabase
                 .getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com")
                 .getReference("vehicles");
+
 
         ref.orderByChild("userId").equalTo(uid)
                 .addListenerForSingleValueEvent(new ValueEventListener() {
@@ -209,17 +294,25 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         String selectedText = spinnerVehicles.getText().toString();
         int pos = vehicleLabels.indexOf(selectedText);
         if (pos <= 0) { // Si no hay selección o es el placeholder
-            Toast.makeText(this, "Debes seleccionar un vehículo", Toast.LENGTH_SHORT).show();
+            showErrorSnackbar("Debes seleccionar un vehículo");
             return;
         }
         String vehId = vehicleIds.get(pos);
 
         // Resto de campos
         String date = etDate.getText().toString().trim();
+        String time = etTime.getText().toString().trim();
+        
+        // Validar fecha y hora
+        if (!isValidDateTime(date, time)) {
+            return;
+        }
+        
+        String dateTime = date + (time.isEmpty() ? "" : (" " + time));
         String type = etType.getText().toString().trim();
         String desc = etDesc.getText().toString().trim();
         if (date.isEmpty() || type.isEmpty()) {
-            Toast.makeText(this, "Rellena fecha y tipo", Toast.LENGTH_SHORT).show();
+            showErrorSnackbar("Rellena fecha y tipo");
             return;
         }
 
@@ -238,26 +331,150 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         if (editingId < 0) {
             // Nuevo
             MaintenanceEntity m = new MaintenanceEntity(
-                    userId, vehId, plate, date, type, desc, cost
+                    userId, vehId, plate, dateTime, type, desc, cost
             );
             long id = dao.insert(m);
             android.util.Log.d("AddMaintenance", "Nuevo mantenimiento guardado con ID: " + id);
-            Toast.makeText(this, "✅ Mantenimiento guardado (ID: " + id + ")", Toast.LENGTH_LONG).show();
+            programarNotificacionMantenimiento(date, time, type, vehId, plate);
         } else {
             // Actualizar
             MaintenanceEntity exist = dao.findById(editingId);
             exist.vehicleId  = vehId;
             exist.vehiclePlate = plate;
-            exist.date       = date;
+            exist.date       = dateTime;
             exist.type       = type;
             exist.description= desc;
             exist.cost       = cost;
             dao.update(exist);
             android.util.Log.d("AddMaintenance", "Mantenimiento actualizado ID: " + editingId);
-            Toast.makeText(this, "✅ Mantenimiento actualizado", Toast.LENGTH_SHORT).show();
+            programarNotificacionMantenimiento(date, time, type, vehId, plate);
         }
 
         setResult(Activity.RESULT_OK);
         finish();
+    }
+
+    private boolean isValidDateTime(String date, String time) {
+        if (date.isEmpty()) {
+            showErrorSnackbar("Debes seleccionar una fecha");
+            return false;
+        }
+
+        Calendar now = Calendar.getInstance();
+        Calendar selectedDate = Calendar.getInstance();
+        
+        try {
+            String[] dateParts = date.split("-");
+            selectedDate.set(
+                Integer.parseInt(dateParts[0]),
+                Integer.parseInt(dateParts[1]) - 1,
+                Integer.parseInt(dateParts[2])
+            );
+
+            // Si la fecha es hoy, verificar la hora
+            if (selectedDate.get(Calendar.YEAR) == now.get(Calendar.YEAR) &&
+                selectedDate.get(Calendar.MONTH) == now.get(Calendar.MONTH) &&
+                selectedDate.get(Calendar.DAY_OF_MONTH) == now.get(Calendar.DAY_OF_MONTH)) {
+                
+                if (time.isEmpty()) {
+                    showErrorSnackbar("Para hoy debes especificar una hora");
+                    return false;
+                }
+
+                String[] timeParts = time.split(":");
+                int hour = Integer.parseInt(timeParts[0]);
+                int minute = Integer.parseInt(timeParts[1]);
+
+                if (hour < now.get(Calendar.HOUR_OF_DAY) ||
+                    (hour == now.get(Calendar.HOUR_OF_DAY) && 
+                     minute <= now.get(Calendar.MINUTE))) {
+                    showErrorSnackbar("La hora debe ser posterior a la hora actual");
+                    return false;
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            showErrorSnackbar("Formato de fecha u hora inválido");
+            return false;
+        }
+    }
+
+    private void showErrorSnackbar(String message) {
+        Snackbar snackbar = Snackbar.make(
+            findViewById(android.R.id.content),
+            message,
+            Snackbar.LENGTH_LONG
+        );
+        
+        // Personalizar el estilo del Snackbar
+        View snackbarView = snackbar.getView();
+        snackbarView.setBackgroundColor(getResources().getColor(R.color.red_500));
+        
+        TextView textView = snackbarView.findViewById(com.google.android.material.R.id.snackbar_text);
+        textView.setTextColor(getResources().getColor(android.R.color.white));
+        textView.setTextSize(16);
+        
+        // Añadir icono de error
+        Drawable errorIcon = getResources().getDrawable(android.R.drawable.ic_dialog_alert);
+        errorIcon.setTint(getResources().getColor(android.R.color.white));
+        textView.setCompoundDrawablesWithIntrinsicBounds(errorIcon, null, null, null);
+        textView.setCompoundDrawablePadding(getResources().getDimensionPixelSize(R.dimen.snackbar_icon_padding));
+        
+        snackbar.show();
+    }
+
+    // Método stub para programar notificación
+    private void programarNotificacionMantenimiento(String fecha, String hora, String tipo, String vehId, String plate) {
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        if (!prefs.getBoolean("notif_maint", false)) return;
+
+        try {
+            // Verificar permisos de notificación
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, 
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1003);
+                    return;
+                }
+            }
+
+            String dateTimeStr = fecha + (hora.isEmpty() ? " 09:00" : (" " + hora));
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+            Date date = sdf.parse(dateTimeStr);
+            if (date == null) return;
+
+            long triggerAt = date.getTime();
+            
+            // Crear un ID único para la notificación
+            int notificationId = (int) (triggerAt / 1000);
+            
+            // Crear el intent con flags actualizados
+            Intent intent = new Intent(this, MaintenanceReminderReceiver.class);
+            intent.putExtra("type", tipo);
+            intent.putExtra("plate", plate);
+            intent.putExtra("vehId", vehId);
+            intent.putExtra("notificationId", notificationId);
+            
+            PendingIntent pi = PendingIntent.getBroadcast(
+                this, 
+                notificationId, 
+                intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (am != null) {
+                // Usar setAlarmClock para mayor precisión
+                AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(triggerAt, pi);
+                am.setAlarmClock(alarmClockInfo, pi);
+                
+                // Log para debugging
+                android.util.Log.d("Maintenance", "Notificación programada para: " + dateTimeStr + 
+                    " (ID: " + notificationId + ")");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("Maintenance", "Error programando notificación: " + e.getMessage());
+        }
     }
 }

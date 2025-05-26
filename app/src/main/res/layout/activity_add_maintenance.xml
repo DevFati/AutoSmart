@@ -94,21 +94,38 @@
                             android:inputType="date"/>
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- 6) Coste -->
+                    <!-- Hora -->
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="Coste (€)"
+                        android:hint="Hora"
                         android:layout_marginStart="8dp">
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etCost"
+                            android:id="@+id/etTime"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="numberDecimal"/>
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:inputType="time"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
+
+                <!-- 6) Coste -->
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Coste (€)"
+                    android:layout_marginBottom="16dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etCost"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal"/>
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- 4) Tipo -->
                 <com.google.android.material.textfield.TextInputLayout

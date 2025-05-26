@@ -18,6 +18,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -105,8 +107,16 @@ public class DiagnosisFragment extends Fragment {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> progressBar.setVisibility(View.GONE));
                 if (!response.isSuccessful()) {
-                    getActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Código no encontrado", Toast.LENGTH_SHORT).show());
+                    getActivity().runOnUiThread(() -> {
+                        View rootView = getView();
+                        if (rootView != null) {
+                            Snackbar snackbar = Snackbar.make(rootView, "\u26A0\uFE0F  Código no encontrado", Snackbar.LENGTH_LONG);
+                            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.blue_500));
+                            snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+                            snackbar.setAction("OK", v -> {});
+                            snackbar.show();
+                        }
+                    });
                     return;
                 }
                 try {
