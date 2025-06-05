@@ -38,6 +38,7 @@ import com.google.firebase.storage.StorageReference;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -156,6 +157,10 @@ public class VehicleDetailFragment extends Fragment {
         tvNoDocs .setOnClickListener(addDocClick);
         rvDocs   .setOnClickListener(addDocClick);
         btnAddDoc.setOnClickListener(addDocClick);
+
+        // Configurar listeners del adapter
+        docAdapter.setOnEditClickListener((doc, pos) -> showEditDocDialog(doc, pos));
+        docAdapter.setOnDeleteClickListener((doc, pos) -> showDeleteDocDialog(doc, pos));
 
         return root;
     }
@@ -331,7 +336,17 @@ public class VehicleDetailFragment extends Fragment {
     private void showSavedSnackbar() {
         View rootView = getView();
         if (rootView == null) return;
-        Snackbar snackbar = Snackbar.make(rootView, "  Documento guardado localmente", Snackbar.LENGTH_LONG);
+        Snackbar snackbar = Snackbar.make(rootView, "  Documento guardado", Snackbar.LENGTH_LONG);
+        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.purple_500));
+        snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+        snackbar.setAction("OK", v -> {});
+        snackbar.show();
+    }
+
+    private void showEditSuccessSnackbar() {
+        View rootView = getView();
+        if (rootView == null) return;
+        Snackbar snackbar = Snackbar.make(rootView, "  ¡Documentación editada con éxito!", Snackbar.LENGTH_LONG);
         snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.purple_500));
         snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
         snackbar.setAction("OK", v -> {});
@@ -352,13 +367,36 @@ public class VehicleDetailFragment extends Fragment {
     static class DocumentAdapter
             extends RecyclerView.Adapter<DocumentAdapter.DocVH> {
         private final List<Document> docs;
-        DocumentAdapter(List<Document> docs) { this.docs = docs; }
+        private OnEditClickListener editListener;
+        private OnDeleteClickListener deleteListener;
+
+        public interface OnEditClickListener {
+            void onEditClick(Document doc, int position);
+        }
+
+        public interface OnDeleteClickListener {
+            void onDeleteClick(Document doc, int position);
+        }
+
+        DocumentAdapter(List<Document> docs) { 
+            this.docs = docs; 
+        }
+
+        public void setOnEditClickListener(OnEditClickListener listener) {
+            this.editListener = listener;
+        }
+
+        public void setOnDeleteClickListener(OnDeleteClickListener listener) {
+            this.deleteListener = listener;
+        }
+
         @NonNull @Override
         public DocVH onCreateViewHolder(@NonNull ViewGroup p, int v) {
             View iv = LayoutInflater.from(p.getContext())
                     .inflate(R.layout.item_document, p, false);
             return new DocVH(iv);
         }
+
         @Override
         public void onBindViewHolder(@NonNull DocVH h, int pos) {
             Document d = docs.get(pos);
@@ -370,6 +408,8 @@ public class VehicleDetailFragment extends Fragment {
             } else {
                 h.imgThumb.setImageResource(R.drawable.ic_document);
             }
+
+            // Click en el documento para verlo
             h.itemView.setOnClickListener(v -> {
                 if ("image".equals(d.fileType)) {
                     File file = new File(d.url);
@@ -397,18 +437,37 @@ public class VehicleDetailFragment extends Fragment {
                     context.startActivity(i);
                 }
             });
+
+            // Click en editar
+            h.btnEdit.setOnClickListener(v -> {
+                if (editListener != null) {
+                    editListener.onEditClick(d, h.getAdapterPosition());
+                }
+            });
+
+            // Click en eliminar
+            h.btnDelete.setOnClickListener(v -> {
+                if (deleteListener != null) {
+                    deleteListener.onDeleteClick(d, h.getAdapterPosition());
+                }
+            });
         }
+
         @Override public int getItemCount() { return docs.size(); }
 
         static class DocVH extends RecyclerView.ViewHolder {
             ImageView imgThumb;
-            TextView  tvName, tvType, tvDate;
+            TextView tvName, tvType, tvDate;
+            ImageButton btnEdit, btnDelete;
+
             DocVH(@NonNull View v) {
                 super(v);
                 imgThumb = v.findViewById(R.id.imgDocThumb);
-                tvName   = v.findViewById(R.id.tvDocName);
-                tvType   = v.findViewById(R.id.tvDocType);
-                tvDate   = v.findViewById(R.id.tvDocDate);
+                tvName = v.findViewById(R.id.tvDocName);
+                tvType = v.findViewById(R.id.tvDocType);
+                tvDate = v.findViewById(R.id.tvDocDate);
+                btnEdit = v.findViewById(R.id.btnEditDoc);
+                btnDelete = v.findViewById(R.id.btnDeleteDoc);
             }
         }
     }
@@ -426,5 +485,79 @@ public class VehicleDetailFragment extends Fragment {
             .getString(PREFS_KEY_PREFIX + vehicleId, null);
         if (json == null) return new ArrayList<>();
         return gson.fromJson(json, new TypeToken<List<Document>>(){}.getType());
+    }
+
+    private void showEditDocDialog(Document doc, int position) {
+        View dialogView = LayoutInflater.from(getContext())
+                .inflate(R.layout.dialog_add_doc, null, false);
+        EditText etDocName = dialogView.findViewById(R.id.etDocName);
+        ChipGroup chipGroup = dialogView.findViewById(R.id.chipGroupDocType);
+
+        // Pre-llenar datos
+        etDocName.setText(doc.name);
+        for (int i = 0; i < chipGroup.getChildCount(); i++) {
+            Chip chip = (Chip) chipGroup.getChildAt(i);
+            if (chip.getText().toString().equals(doc.type)) {
+                chip.setChecked(true);
+                break;
+            }
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Editar documento")
+                .setView(dialogView)
+                .setPositiveButton("Guardar", (d, w) -> {
+                    String name = etDocName.getText().toString().trim();
+                    String type = "";
+                    int checked = chipGroup.getCheckedChipId();
+                    if (checked != -1) {
+                        type = ((Chip) dialogView.findViewById(checked)).getText().toString();
+                    }
+                    if (!name.isEmpty() && !type.isEmpty()) {
+                        doc.name = name;
+                        doc.type = type;
+                        localDocuments.set(position, doc);
+                        saveLocalDocuments(vehicleId, localDocuments);
+                        docAdapter.notifyItemChanged(position);
+                        showEditSuccessSnackbar();
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void showDeleteDocDialog(Document doc, int position) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("¿Eliminar documento?")
+                .setMessage("Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este documento?")
+                .setIcon(R.drawable.ic_delete)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Eliminar", (dialog, which) -> {
+                    // Eliminar archivo local
+                    File file = new File(doc.url);
+                    if (file.exists()) {
+                        file.delete();
+                    }
+                    // Eliminar de la lista y guardar
+                    localDocuments.remove(position);
+                    saveLocalDocuments(vehicleId, localDocuments);
+                    docAdapter.notifyItemRemoved(position);
+                    // Mostrar mensaje
+                    View rootView = getView();
+                    if (rootView != null) {
+                        Snackbar snackbar = Snackbar.make(
+                            rootView,
+                            "Documento eliminado",
+                            Snackbar.LENGTH_LONG
+                        );
+                        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.red_500));
+                        snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+                        snackbar.setAction("OK", v -> {});
+                        snackbar.show();
+                    }
+                    // Actualizar visibilidad del mensaje de lista vacía
+                    tvNoDocs.setVisibility(localDocuments.isEmpty() ? View.VISIBLE : View.GONE);
+                })
+                .show();
     }
 }

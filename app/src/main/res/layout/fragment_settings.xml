@@ -125,11 +125,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Recordatorio de mantenimiento" />
-                <Switch
-                    android:id="@+id/switchFuel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Aviso de repostaje" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -177,15 +172,6 @@
             android:textColor="@color/white"
             android:backgroundTint="@color/blue_500"
             android:layout_marginBottom="16dp"
-            android:textStyle="bold" />
-        <Button
-            android:id="@+id/btnLogout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Cerrar sesión"
-            android:textColor="@color/white"
-            android:backgroundTint="@color/blue_500"
-            android:layout_marginBottom="12dp"
             android:textStyle="bold" />
         <Button
             android:id="@+id/btnDeleteAccount"

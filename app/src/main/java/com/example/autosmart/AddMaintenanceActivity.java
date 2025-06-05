@@ -41,6 +41,7 @@ import java.util.Date;
 import java.util.Locale;
 import android.Manifest;
 import android.content.pm.PackageManager;
+import com.example.autosmart.utils.EncryptionUtils;
 
 /**
  * Activity para agregar o editar un mantenimiento.
@@ -49,7 +50,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
     public static final String EXTRA_MAINT_ID   = "maintenance_id";
 
     private MaterialAutoCompleteTextView spinnerVehicles;
-    private TextInputEditText etDate, etTime, etType, etDesc, etCost, etPlate;
+    private TextInputEditText etDate, etTime, etType, etDesc, etCost, etPlate, etMileage;
     private MaterialButton btnSave;
 
     private MaintenanceDao dao;
@@ -76,6 +77,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         etDesc          = findViewById(R.id.etDesc);
         etCost          = findViewById(R.id.etCost);
         etPlate         = findViewById(R.id.etPlate);
+        etMileage       = findViewById(R.id.etMileage);
         btnSave         = findViewById(R.id.btnSave);
 
         // 2) Inicia el DAO de Room
@@ -187,6 +189,16 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                         etDate.setText(parts[0]);
                         etTime.setText(parts[1]);
                     }
+                    // Desencriptar matrícula si es necesario
+                    try {
+                        etPlate.setText(EncryptionUtils.decrypt(exist.vehiclePlate));
+                    } catch (Exception e) {
+                        etPlate.setText(exist.vehiclePlate);
+                    }
+                    // Mostrar kilometraje si existe
+                    if (exist.kilometraje > 0) {
+                        etMileage.setText(String.valueOf(exist.kilometraje));
+                    }
                 }
             }
         }
@@ -201,6 +213,14 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                 // El listener del spinner rellenará la matrícula automáticamente
             } else {
                 etPlate.setText(pendingPlate != null ? pendingPlate : "");
+                // Desencriptar matrícula si es necesario
+                if (pendingPlate != null) {
+                    try {
+                        etPlate.setText(EncryptionUtils.decrypt(pendingPlate));
+                    } catch (Exception e) {
+                        etPlate.setText(pendingPlate);
+                    }
+                }
             }
             pendingVehicleId = null;
             pendingPlate = null;
@@ -222,7 +242,12 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         Vehicle v = snapshot.getValue(Vehicle.class);
                         if (v != null) {
-                            etPlate.setText(v.getPlate());
+                            // Desencriptar matrícula si es necesario
+                            try {
+                                etPlate.setText(EncryptionUtils.decrypt(v.getPlate()));
+                            } catch (Exception e) {
+                                etPlate.setText(v.getPlate());
+                            }
                         }
                     }
                     @Override
@@ -274,6 +299,14 @@ public class AddMaintenanceActivity extends AppCompatActivity {
                                 // El listener del spinner rellenará la matrícula automáticamente
                             } else {
                                 etPlate.setText(pendingPlate != null ? pendingPlate : "");
+                                // Desencriptar matrícula si es necesario
+                                if (pendingPlate != null) {
+                                    try {
+                                        etPlate.setText(EncryptionUtils.decrypt(pendingPlate));
+                                    } catch (Exception e) {
+                                        etPlate.setText(pendingPlate);
+                                    }
+                                }
                             }
                             pendingVehicleId = null;
                             pendingPlate = null;
@@ -319,8 +352,29 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         double cost;
         try {
             cost = Double.parseDouble(etCost.getText().toString().trim());
+            if (cost > 99999.99) {
+                etCost.setError("El coste no puede exceder 99999.99€");
+                return;
+            }
+            if (cost < 0) {
+                etCost.setError("El coste no puede ser negativo");
+                return;
+            }
         } catch (NumberFormatException ex) {
             etCost.setError("Inválido");
+            return;
+        }
+
+        // Validar kilometraje
+        int kilometraje;
+        try {
+            kilometraje = Integer.parseInt(etMileage.getText().toString().trim());
+            if (kilometraje < 0) {
+                etMileage.setError("El kilometraje no puede ser negativo");
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            etMileage.setError("Obligatorio");
             return;
         }
 
@@ -331,7 +385,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         if (editingId < 0) {
             // Nuevo
             MaintenanceEntity m = new MaintenanceEntity(
-                    userId, vehId, plate, dateTime, type, desc, cost
+                    userId, vehId, plate, dateTime, type, desc, cost, kilometraje
             );
             long id = dao.insert(m);
             android.util.Log.d("AddMaintenance", "Nuevo mantenimiento guardado con ID: " + id);
@@ -345,6 +399,7 @@ public class AddMaintenanceActivity extends AppCompatActivity {
             exist.type       = type;
             exist.description= desc;
             exist.cost       = cost;
+            exist.kilometraje = kilometraje;
             dao.update(exist);
             android.util.Log.d("AddMaintenance", "Mantenimiento actualizado ID: " + editingId);
             programarNotificacionMantenimiento(date, time, type, vehId, plate);

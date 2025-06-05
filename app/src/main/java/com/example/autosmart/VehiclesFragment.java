@@ -35,6 +35,7 @@ public class VehiclesFragment extends Fragment {
     private VehicleAdapter adapter;
     private List<Vehicle> vehicleList = new ArrayList<>();
     private MaintenanceDao maintenanceDao;
+    private VehicleDao vehicleDao;
     private TextView tvNoVehicles;
 
     // Referencia raíz y consulta filtrada
@@ -53,17 +54,12 @@ public class VehiclesFragment extends Fragment {
         fab          = root.findViewById(R.id.fabAddVehicle);
         tvNoVehicles = root.findViewById(R.id.tvNoVehicles);
         maintenanceDao = AppDatabase.getInstance(requireContext()).maintenanceDao();
+        vehicleDao = AppDatabase.getInstance(requireContext()).vehicleDao();
 
         // 1) Configura RecyclerView + Adapter
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new VehicleAdapter(vehicleList);
         recyclerView.setAdapter(adapter);
-
-        // 2) Configura long‑click para eliminar
-        adapter.setOnItemLongClickListener((vehicle, pos) -> {
-            showDeleteMenu(vehicle, recyclerView.findViewHolderForAdapterPosition(pos).itemView);
-            return true;
-        });
 
         // 2.5) Configura short click para abrir detalle
         adapter.setOnItemClickListener((vehicle, pos) -> {
@@ -77,6 +73,17 @@ public class VehiclesFragment extends Fragment {
                 .addToBackStack(null)
                 .commit();
             fab.setVisibility(View.GONE);
+        });
+
+        // Nuevo: Listener para eliminar
+        adapter.setOnDeleteClickListener((vehicle, pos) -> {
+            showDeleteMenu(vehicle, recyclerView.findViewHolderForAdapterPosition(pos).itemView);
+        });
+        // Nuevo: Listener para editar
+        adapter.setOnEditClickListener((vehicle, pos) -> {
+            Intent intent = new Intent(getActivity(), AddVehicleActivity.class);
+            intent.putExtra("vehicleId", vehicle.getId());
+            startActivity(intent);
         });
 
         // 3) Prepara Firebase:
@@ -100,6 +107,7 @@ public class VehiclesFragment extends Fragment {
 
     private void loadVehiclesFromFirebase() {
         progressBar.setVisibility(View.VISIBLE);
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         vehiclesQuery.addValueEventListener(new ValueEventListener() {
             @Override
@@ -109,6 +117,8 @@ public class VehiclesFragment extends Fragment {
                     Vehicle veh = child.getValue(Vehicle.class);
                     if (veh != null) {
                         vehicleList.add(veh);
+                        // Guardar en base de datos local
+                        vehicleDao.insert(VehicleEntity.fromVehicle(veh));
                     }
                 }
                 adapter.notifyDataSetChanged();
@@ -145,9 +155,21 @@ public class VehiclesFragment extends Fragment {
                         .addOnSuccessListener(a -> {
                             // 2) Borra localmente todos sus mantenimientos
                             maintenanceDao.deleteForVehicle(vehicle.getId());
-                            Toast.makeText(getContext(),
+                            // 3) Borra el vehículo de la base de datos local
+                            vehicleDao.delete(VehicleEntity.fromVehicle(vehicle));
+                            // Mostrar Snackbar bonito y consistente
+                            View rootView = getView();
+                            if (rootView != null) {
+                                com.google.android.material.snackbar.Snackbar snackbar = com.google.android.material.snackbar.Snackbar.make(
+                                    rootView,
                                     "Vehículo y sus mantenimientos eliminados",
-                                    Toast.LENGTH_SHORT).show();
+                                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                                );
+                                snackbar.setBackgroundTint(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.red_500));
+                                snackbar.setTextColor(android.graphics.Color.WHITE);
+                                snackbar.setAction("OK", v2 -> {});
+                                snackbar.show();
+                            }
                         })
                         .addOnFailureListener(e ->
                                 Toast.makeText(getContext(),

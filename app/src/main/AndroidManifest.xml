@@ -32,6 +32,7 @@
         <activity android:name=".DashboardActivity"/>
         <activity android:name=".AddVehicleActivity" />
         <activity android:name=".AddMaintenanceActivity" />
+        <activity android:name=".ProfileSetupActivity" />
 
         <activity
             android:name=".MainActivity"

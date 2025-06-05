@@ -41,6 +41,7 @@
 
                 <!-- Marca -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilBrand"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Marca"
@@ -54,6 +55,7 @@
 
                 <!-- Modelo -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilModel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Modelo"
@@ -67,6 +69,7 @@
 
                 <!-- Versión -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilEngine"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Versión"
@@ -91,7 +94,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textCapCharacters"
-                        android:maxLength="7"/>
+                        android:maxLength="8"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
 

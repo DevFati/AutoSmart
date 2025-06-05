@@ -31,6 +31,15 @@ public interface MaintenanceDao {
     // Método de depuración
     @Query("SELECT COUNT(*) FROM maintenance WHERE userId = :userId")
     int countMaintenanceForUser(String userId);
+
+    @Query("SELECT COUNT(*) FROM maintenance")
+    int getMaintenanceCount();
+
+    @Query("SELECT * FROM maintenance WHERE date >= :today ORDER BY date ASC LIMIT 1")
+    MaintenanceEntity getNextMaintenance(String today);
+
+    @Query("SELECT * FROM maintenance WHERE userId = :userId ORDER BY date DESC")
+    List<MaintenanceEntity> getAllForUser(String userId);
 }
 
 

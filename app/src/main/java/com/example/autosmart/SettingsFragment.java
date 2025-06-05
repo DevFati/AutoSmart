@@ -50,7 +50,7 @@ public class SettingsFragment extends Fragment {
     private Spinner spinnerLanguage;
     private RadioGroup rgTheme;
     private Switch switchMaint;
-    private Button btnLogout, btnDeleteAccount;
+    private Button btnDeleteAccount;
     private Uri profileImageUri;
     private SharedPreferences prefs;
     private String currentPhotoPath;
@@ -71,11 +71,22 @@ public class SettingsFragment extends Fragment {
         etUsername = root.findViewById(R.id.etUsername);
         rgTheme = root.findViewById(R.id.rgTheme);
         switchMaint = root.findViewById(R.id.switchMaint);
-        btnLogout = root.findViewById(R.id.btnLogout);
         btnDeleteAccount = root.findViewById(R.id.btnDeleteAccount);
 
         // Cargar nombre y foto guardados
-        etUsername.setText(prefs.getString("username", ""));
+        AppDatabase db = AppDatabase.getInstance(requireContext());
+        UserEntity user = db.userDao().getUser();
+        if (user != null) {
+            String nombre;
+            try {
+                nombre = com.example.autosmart.utils.EncryptionUtils.decrypt(user.getName());
+            } catch (Exception e) {
+                nombre = user.getName();
+            }
+            etUsername.setText(nombre);
+        } else {
+            etUsername.setText("");
+        }
         String photoUri = prefs.getString("profile_photo", null);
         if (photoUri != null && !photoUri.isEmpty()) {
             if (photoUri.startsWith("http")) {
@@ -147,12 +158,6 @@ public class SettingsFragment extends Fragment {
         });
         root.findViewById(R.id.tvAbout).setOnClickListener(v -> {
             // TODO: Mostrar información de la app
-        });
-
-        // Cerrar sesión
-        btnLogout.setOnClickListener(v -> {
-            // TODO: Lógica de logout
-            Snackbar.make(root, "Sesión cerrada", Snackbar.LENGTH_SHORT).show();
         });
 
         // Eliminar cuenta

@@ -1,5 +1,7 @@
 package com.example.autosmart;
 
+import com.example.autosmart.utils.EncryptionUtils;
+
 public class Vehicle {
     private String id;
     private String brand;
@@ -7,7 +9,8 @@ public class Vehicle {
     private String year;
     private String engineType;
     private String userId;   // ← nuevo campo
-    private String plate;  // Nuevo campo
+    private String plate;  // Almacenará la matrícula cifrada
+    private boolean isPlateEncrypted = false; // Nuevo campo para controlar si la matrícula está cifrada
 
     // Constructor vacío requerido por Firebase
     public Vehicle() { }
@@ -20,7 +23,13 @@ public class Vehicle {
         this.year = year;
         this.engineType = engineType;
         this.userId = userId;
-        this.plate = plate;
+        try {
+            this.plate = EncryptionUtils.encrypt(plate);
+            this.isPlateEncrypted = true;
+        } catch (Exception e) {
+            this.plate = plate;
+            this.isPlateEncrypted = false;
+        }
     }
 
     // Getters y Setters
@@ -58,7 +67,30 @@ public class Vehicle {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public String getPlate() { return plate; }
-    public void setPlate(String plate) { this.plate = plate; }
+    public String getPlate() { 
+        if (!isPlateEncrypted) {
+            return plate;
+        }
+        try {
+            return EncryptionUtils.decrypt(plate);
+        } catch (Exception e) {
+            return plate; // En caso de error, devolver sin descifrar
+        }
+    }
+    
+    public void setPlate(String plate) { 
+        try {
+            this.plate = EncryptionUtils.encrypt(plate);
+            this.isPlateEncrypted = true;
+        } catch (Exception e) {
+            this.plate = plate;
+            this.isPlateEncrypted = false;
+        }
+    }
+
+    // Método para verificar si la matrícula está cifrada
+    public boolean isPlateEncrypted() {
+        return isPlateEncrypted;
+    }
 }
 

@@ -15,10 +15,12 @@ import androidx.room.PrimaryKey;
         public String description;   // detalles
         public double cost;          // coste
         public String vehiclePlate;  // Nueva propiedad
+        public int kilometraje;     // Nuevo campo
+        public boolean isDeleted = false; // Nuevo campo para historial permanente
 
         // Constructor
         public MaintenanceEntity(String userId, String vehicleId, String vehiclePlate, String date, String type,
-                                 String description, double cost) {
+                                 String description, double cost, int kilometraje) {
             this.userId      = userId;
             this.vehicleId = vehicleId;
             this.date = date;
@@ -26,7 +28,8 @@ import androidx.room.PrimaryKey;
             this.description = description;
             this.cost = cost;
             this.vehiclePlate = vehiclePlate;
-
+            this.kilometraje = kilometraje;
+            this.isDeleted = false;
         }
     }
 

@@ -41,6 +41,15 @@
                     android:textSize="18sp"/>
 
                 <TextView
+                    android:id="@+id/tvMaintMileage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="120000 km"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    android:layout_marginTop="2dp"/>
+
+                <TextView
                     android:id="@+id/tvMaintVehicle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

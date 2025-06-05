@@ -18,4 +18,6 @@
     <color name="orange_500">#FB8C00</color>
     <color name="purple_50">#F5F0FF</color>
 
+    <color name="ic_launcher_background">#FFFFFF</color>
+
 </resources>

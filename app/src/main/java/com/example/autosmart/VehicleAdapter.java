@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.autosmart.utils.EncryptionUtils;
 
 import java.util.List;
 
@@ -29,9 +30,19 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
         void onItemClick(Vehicle vehicle, int position);
     }
 
+    public interface OnEditClickListener {
+        void onEditClick(Vehicle vehicle, int position);
+    }
+
+    public interface OnDeleteClickListener {
+        void onDeleteClick(Vehicle vehicle, int position);
+    }
+
     private List<Vehicle> vehicleList;
     private OnItemLongClickListener longClickListener;
     private OnItemClickListener clickListener;
+    private OnEditClickListener editClickListener;
+    private OnDeleteClickListener deleteClickListener;
 
     public VehicleAdapter(List<Vehicle> vehicleList) {
         this.vehicleList = vehicleList;
@@ -43,6 +54,14 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
 
     public void setOnItemClickListener(OnItemClickListener listener) {
         this.clickListener = listener;
+    }
+
+    public void setOnEditClickListener(OnEditClickListener listener) {
+        this.editClickListener = listener;
+    }
+
+    public void setOnDeleteClickListener(OnDeleteClickListener listener) {
+        this.deleteClickListener = listener;
     }
 
     @NonNull
@@ -94,6 +113,20 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
             }
             return false;
         });
+
+        // Botón editar
+        holder.btnEdit.setOnClickListener(view -> {
+            if (editClickListener != null) {
+                editClickListener.onEditClick(v, holder.getAdapterPosition());
+            }
+        });
+
+        // Botón eliminar
+        holder.btnDelete.setOnClickListener(view -> {
+            if (deleteClickListener != null) {
+                deleteClickListener.onDeleteClick(v, holder.getAdapterPosition());
+            }
+        });
     }
 
 
@@ -105,6 +138,7 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
         ImageView imgBrandLogo;
         TextView tvBrandModel, tvYear, tvEngine, tvPlate;
+        android.widget.ImageButton btnEdit, btnDelete;
 
 
         public VehicleViewHolder(@NonNull View itemView) {
@@ -114,13 +148,21 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
             tvYear       = itemView.findViewById(R.id.tvYear);
             tvEngine     = itemView.findViewById(R.id.tvEngine);
             tvPlate      = itemView.findViewById(R.id.tvPlate);
+            btnEdit      = itemView.findViewById(R.id.btnEditVehicle);
+            btnDelete    = itemView.findViewById(R.id.btnDeleteVehicle);
         }
 
         public void bind(Vehicle v) {
             tvBrandModel.setText(v.getBrand() + " " + v.getModel());
             tvYear.setText(v.getYear());
             tvEngine.setText(v.getEngineType());
-            tvPlate.setText(v.getPlate());
+            String plate;
+            try {
+                plate = EncryptionUtils.decrypt(v.getPlate());
+            } catch (Exception e) {
+                plate = v.getPlate();
+            }
+            tvPlate.setText(plate);
         }
     }
 

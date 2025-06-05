@@ -15,7 +15,7 @@
         android:text="Diagnóstico OBD2"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:textColor="#512DA8"
+        android:textColor="@color/purple_500"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -90,7 +90,7 @@
             <TextView
                 android:id="@+id/tvObdDefinition"
                 android:textSize="16sp"
-                android:textColor="#222"
+                android:textColor="@color/black"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"/>
@@ -99,7 +99,7 @@
                 android:id="@+id/tvObdCausesTitle"
                 android:text="Causas posibles:"
                 android:textStyle="bold"
-                android:textColor="#512DA8"
+                android:textColor="@color/purple_500"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -108,7 +108,7 @@
             <TextView
                 android:id="@+id/tvObdCauses"
                 android:textSize="15sp"
-                android:textColor="#444"
+                android:textColor="@color/gray_light"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"/>

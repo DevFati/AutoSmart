@@ -30,6 +30,7 @@ import com.google.android.gms.common.SignInButton;
 import android.app.AlertDialog;
 import com.google.android.material.snackbar.Snackbar;
 import androidx.core.content.ContextCompat;
+import android.content.SharedPreferences;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -38,7 +39,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword;
     private Button btnLogin, btnRegister;
     private FirebaseAuth mAuth;
-    private Button btnGoogle;
+    private SignInButton btnGoogle;
     private TextView tvForgotPassword;
 
     // Cliente de Google Sign-In y código de solicitud
@@ -68,6 +69,10 @@ public class LoginActivity extends AppCompatActivity {
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        // Configurar el botón de Google
+        btnGoogle.setSize(SignInButton.SIZE_WIDE);
+        btnGoogle.setColorScheme(SignInButton.COLOR_LIGHT);
 
         // Listener para Login tradicional
         btnLogin.setOnClickListener(new View.OnClickListener() {
@@ -131,9 +136,54 @@ public class LoginActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             FirebaseUser user = mAuth.getCurrentUser();
-                            updateUI(user);
+                            if (user != null && user.isEmailVerified()) {
+                                updateUI(user);
+                                SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString("login_method", "email");
+                                editor.apply();
+                            } else if (user != null) {
+                                showResendVerificationSnackbar(user);
+                                mAuth.signOut();
+                            } else {
+                                showErrorSnackbar("Error inesperado. Intenta de nuevo.");
+                            }
                         } else {
-                            showErrorSnackbar("Error en inicio de sesión: " + task.getException().getMessage());
+                            String errorMsg = "Ocurrió un error al iniciar sesión. Intenta de nuevo.";
+                            Exception e = task.getException();
+                            if (e != null) {
+                                String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                                if (msg.contains("password is invalid") || msg.contains("invalid password")) {
+                                    errorMsg = "La contraseña es incorrecta. Intenta de nuevo.";
+                                } else if (msg.contains("no user record") || msg.contains("user does not exist") || msg.contains("there is no user record") || msg.contains("has expired")) {
+                                    // Comprobar si el correo está registrado con Google
+                                    mAuth.fetchSignInMethodsForEmail(email)
+                                        .addOnCompleteListener(task2 -> {
+                                            if (task2.isSuccessful()) {
+                                                boolean hasGoogle = false;
+                                                for (String method : task2.getResult().getSignInMethods()) {
+                                                    if (method.equals("google.com")) {
+                                                        hasGoogle = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if (hasGoogle) {
+                                                    showErrorSnackbar("Este correo está registrado con Google. Por favor, inicia sesión con el botón de Google.");
+                                                } else {
+                                                    showErrorSnackbar("El correo no está registrado. Por favor, regístrate.");
+                                                }
+                                            } else {
+                                                showErrorSnackbar("El correo no está registrado. Por favor, regístrate.");
+                                            }
+                                        });
+                                    return;
+                                } else if (msg.contains("badly formatted")) {
+                                    errorMsg = "El correo no es válido. Revisa el formato.";
+                                } else if (msg.contains("email address is already in use")) {
+                                    errorMsg = "Ese correo ya fue usado para registrarse con email y contraseña. Por favor, inicia sesión o recupera tu contraseña.";
+                                }
+                            }
+                            showErrorSnackbar(errorMsg);
                         }
                     }
                 });
@@ -141,21 +191,64 @@ public class LoginActivity extends AppCompatActivity {
 
     // Método para registrar un nuevo usuario
     private void registerUser(String email, String password) {
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+        if (!isPasswordSecure(password)) {
+            showErrorSnackbar("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.");
+            return;
+        }
+        mAuth.fetchSignInMethodsForEmail(email)
+                .addOnCompleteListener(this, new OnCompleteListener<com.google.firebase.auth.SignInMethodQueryResult>() {
                     @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
+                    public void onComplete(@NonNull Task<com.google.firebase.auth.SignInMethodQueryResult> task) {
                         if (task.isSuccessful()) {
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            updateUI(user);
+                            boolean emailExists = task.getResult().getSignInMethods() != null && !task.getResult().getSignInMethods().isEmpty();
+                            if (emailExists) {
+                                showErrorSnackbar("El correo ya está registrado. Por favor, inicia sesión o usa otro correo.");
+                            } else {
+                                // Si no existe, registrar normalmente
+                                mAuth.createUserWithEmailAndPassword(email, password)
+                                        .addOnCompleteListener(LoginActivity.this, new OnCompleteListener<AuthResult>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<AuthResult> task) {
+                                                if (task.isSuccessful()) {
+                                                    FirebaseUser user = mAuth.getCurrentUser();
+                                                    if (user != null) {
+                                                        user.sendEmailVerification()
+                                                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                    @Override
+                                                                    public void onComplete(@NonNull Task<Void> task) {
+                                                                        if (task.isSuccessful()) {
+                                                                            showSuccessSnackbar("Registro exitoso. Revisa tu correo y verifica tu cuenta antes de iniciar sesión.");
+                                                                        } else {
+                                                                            String msg = task.getException() != null && task.getException().getMessage() != null ? task.getException().getMessage() : "";
+                                                                            if (msg.toLowerCase().contains("email address is already in use")) {
+                                                                                msg = "El correo electrónico ya está en uso por otra cuenta.";
+                                                                            } else if (msg.toLowerCase().contains("password")) {
+                                                                                msg = "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.";
+                                                                            } else {
+                                                                                msg = "Error en registro: " + msg;
+                                                                            }
+                                                                            showErrorSnackbar(msg);
+                                                                        }
+                                                                    }
+                                                                });
+                                                        mAuth.signOut(); // Cerrar sesión hasta que verifique
+                                                    }
+                                                }
+                                            }
+                                        });
+                            }
                         } else {
-                            String msg = task.getException() != null && task.getException().getMessage().toLowerCase().contains("password")
-                                    ? "La contraseña debe tener al menos 6 caracteres."
-                                    : "Error en registro: " + task.getException().getMessage();
-                            showErrorSnackbar(msg);
+                            showErrorSnackbar("Error al comprobar el correo: " + (task.getException() != null ? task.getException().getMessage() : ""));
                         }
                     }
                 });
+    }
+
+    // Validación de contraseña segura
+    private boolean isPasswordSecure(String password) {
+        if (password == null) return false;
+        // Al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial
+        return password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&._#-])[A-Za-z\\d@$!%*?&._#-]{8,}$");
     }
 
     // Iniciar el flujo de Google Sign-In
@@ -193,6 +286,10 @@ public class LoginActivity extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             FirebaseUser user = mAuth.getCurrentUser();
                             updateUI(user);
+                            SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putString("login_method", "google");
+                            editor.apply();
                         } else {
                             Toast.makeText(LoginActivity.this,
                                     "Fallo en la autenticación con Firebase: " + task.getException().getMessage(),
@@ -204,22 +301,42 @@ public class LoginActivity extends AppCompatActivity {
 
     private void updateUI(FirebaseUser user) {
         if (user != null) {
-            // Obtenemos el displayName; si es nulo o vacío, usamos el correo
+            if (!user.isEmailVerified()) {
+                showResendVerificationSnackbar(user);
+                mAuth.signOut();
+                return;
+            }
+            SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+            String loginMethod = prefs.getString("login_method", "email");
+            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+            // Cifrar explícitamente nombre y email antes de guardar
             String displayName = user.getDisplayName();
             if (displayName == null || displayName.isEmpty()) {
                 displayName = user.getEmail();
             }
-
-            // Obtenemos la instancia de la base de datos usando el singleton
-            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-
-            // Consultamos si ya existe un usuario almacenado en la BBDD
-            UserEntity localUser = new UserEntity(user.getUid(), displayName, user.getEmail());
-
-            db.userDao().insertUser(localUser);
-
-
-            // Redirigimos al Dashboard
+            String encryptedName, encryptedEmail;
+            try {
+                encryptedName = com.example.autosmart.utils.EncryptionUtils.encrypt(displayName);
+            } catch (Exception e) {
+                encryptedName = displayName;
+            }
+            try {
+                encryptedEmail = com.example.autosmart.utils.EncryptionUtils.encrypt(user.getEmail());
+            } catch (Exception e) {
+                encryptedEmail = user.getEmail();
+            }
+            UserEntity userEntity = new UserEntity();
+            userEntity.setFirebaseUid(user.getUid());
+            userEntity.setName(encryptedName);
+            userEntity.setEmail(encryptedEmail);
+            userEntity.setNameEncrypted(true);
+            userEntity.setEmailEncrypted(true);
+            db.userDao().insertUser(userEntity);
+            // Guardar en SharedPreferences
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("username", displayName);
+            editor.apply();
+            // Redirigir al Dashboard
             Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
             startActivity(intent);
             finish();
@@ -256,6 +373,11 @@ public class LoginActivity extends AppCompatActivity {
         Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG);
         snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.red_500));
         snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        View snackbarView = snackbar.getView();
+        TextView textView = snackbarView.findViewById(com.google.android.material.R.id.snackbar_text);
+        if (textView != null) {
+            textView.setMaxLines(5); // Permitir hasta 5 líneas
+        }
         snackbar.show();
     }
 
@@ -263,6 +385,42 @@ public class LoginActivity extends AppCompatActivity {
         Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG);
         snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.blue_500));
         snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        View snackbarView = snackbar.getView();
+        TextView textView = snackbarView.findViewById(com.google.android.material.R.id.snackbar_text);
+        if (textView != null) {
+            textView.setMaxLines(5); // Permitir hasta 5 líneas
+        }
         snackbar.show();
+    }
+
+    // Mostrar Snackbar con opción de reenviar correo de verificación
+    private void showResendVerificationSnackbar(FirebaseUser user) {
+        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content),
+                "Debes verificar tu correo antes de iniciar sesión.", Snackbar.LENGTH_INDEFINITE)
+                .setAction("Reenviar", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        resendVerificationEmail(user);
+                    }
+                });
+        snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.red_500));
+        snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        snackbar.setActionTextColor(ContextCompat.getColor(this, R.color.blue_500));
+        snackbar.show();
+    }
+
+    // Método para reenviar el correo de verificación
+    private void resendVerificationEmail(FirebaseUser user) {
+        user.sendEmailVerification()
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            showSuccessSnackbar("Correo de verificación reenviado. Revisa tu bandeja de entrada.");
+                        } else {
+                            showErrorSnackbar("No se pudo reenviar el correo. Intenta de nuevo más tarde.");
+                        }
+                    }
+                });
     }
 }

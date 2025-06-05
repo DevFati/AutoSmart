@@ -74,8 +74,9 @@ public class MaintenanceFragment extends Fragment {
             }
             @Override
             public void onDelete(MaintenanceEntity m) {
-                dao.delete(m);
-                Toast.makeText(getContext(), "Mantenimiento eliminado", Toast.LENGTH_SHORT).show();
+                m.isDeleted = true;
+                dao.update(m);
+                Toast.makeText(getContext(), "Mantenimiento eliminado (historial permanente)", Toast.LENGTH_SHORT).show();
             }
         });
         rv.setAdapter(adapter);
@@ -214,7 +215,7 @@ public class MaintenanceFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RC_ADD_MAINT && resultCode == Activity.RESULT_OK) {
-            showSavedSnackbar();
+            // showSavedSnackbar(); // Eliminado para que no tape el botón
             // LiveData vuelve a dispararse automáticamente
         }
     }

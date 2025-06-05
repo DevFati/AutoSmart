@@ -47,7 +47,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textEmailAddress"
-                    android:drawableStart="@drawable/ic_email"
+                    android:drawableStart="@drawable/mail"
                     android:drawablePadding="8dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -133,18 +133,12 @@
             </LinearLayout>
 
             <!-- Botón Google -->
-            <com.google.android.material.button.MaterialButton
+            <com.google.android.gms.common.SignInButton
                 android:id="@+id/btnGoogle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Iniciar sesión con Google"
-                android:textStyle="bold"
-                android:icon="@drawable/ic_google"
-                app:iconGravity="textStart"
-                app:iconPadding="12dp"
-                android:backgroundTint="@color/white"
-                android:textColor="@color/black"
-                app:cornerRadius="16dp" />
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
