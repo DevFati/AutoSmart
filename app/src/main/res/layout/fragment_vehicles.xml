@@ -24,6 +24,21 @@
             android:clipToPadding="false"
             android:paddingBottom="72dp" />
 
+        <!-- Mensaje de lista vacía -->
+        <TextView
+            android:id="@+id/tvNoVehicles"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No hay vehículos registrados"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
         <!-- Indicador de carga -->
         <ProgressBar
             android:id="@+id/progressVehicles"

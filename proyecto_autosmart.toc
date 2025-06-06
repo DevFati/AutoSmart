@@ -1,0 +1,21 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Introducción}{2}{section.1}%
+\contentsline {section}{\numberline {2}Estudio de mercado y viabilidad}{2}{section.2}%
+\contentsline {section}{Anexo VI: Cronograma del Proyecto}{4}{section*.9}%
+\contentsline {section}{Anexo III: Diagrama de Casos de Uso}{4}{section*.10}%
+\contentsline {section}{Anexo IV: Diagrama Entidad-Relación}{4}{section*.11}%
+\contentsline {section}{Anexo V: Diagrama de Clases}{4}{section*.12}%
+\contentsline {section}{\numberline {3}Arquitectura de desarrollo}{4}{section.3}%
+\contentsline {section}{\numberline {4}Estructura funcional del sistema}{5}{section.4}%
+\contentsline {section}{\numberline {5}Casos de uso}{6}{section.5}%
+\contentsline {section}{\numberline {6}Diseño de la base de datos}{6}{section.6}%
+\contentsline {section}{\numberline {7}Estructura del software}{7}{section.7}%
+\contentsline {section}{\numberline {8}Soluciones de diseño adoptadas}{7}{section.8}%
+\contentsline {section}{\numberline {9}Pruebas realizadas y resultados}{7}{section.9}%
+\contentsline {section}{\numberline {10}Manual de instalación y usuario}{8}{section.10}%
+\contentsline {section}{\numberline {11}Presupuesto}{8}{section.11}%
+\contentsline {section}{\numberline {12}Desafíos y resolución de problemas}{8}{section.12}%
+\contentsline {section}{\numberline {13}Mejoras futuras}{9}{section.13}%
+\contentsline {section}{\numberline {14}Bibliografía}{9}{section.14}%
+\contentsline {section}{Anexo I: Rúbrica de evaluación}{9}{section*.13}%
+\contentsline {section}{Anexo II: Capturas y diagramas}{10}{section*.14}%

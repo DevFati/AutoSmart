@@ -6,22 +6,41 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".DashboardActivity">
+    tools:context=".ui.activity.DashboardActivity">
 
     <!-- Contenedor principal de la actividad -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
-        <!-- Toolbar con id "toolbar" -->
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <!-- Toolbar elegante y funcional con fondo degradado -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            android:title="Dashboard"
-            app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light" />
+            android:layout_height="wrap_content">
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@drawable/bg_header_gradient"
+                app:titleCentered="true"
+                app:popupTheme="@style/ThemeOverlay.MaterialComponents.Dark" />
+            <TextView
+                android:id="@+id/custom_toolbar_title"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="AutoSmart"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:textSize="26sp"
+                android:fontFamily="sans-serif-medium"
+                android:shadowColor="#80000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="4"/>
+        </FrameLayout>
 
         <!-- Contenedor para cargar los Fragments -->
         <FrameLayout

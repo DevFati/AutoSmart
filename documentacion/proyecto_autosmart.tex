@@ -1,0 +1,190 @@
+\documentclass[12pt,a4paper]{book}
+
+% Paquetes básicos
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{mathpazo}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+
+% Definición de colores institucionales
+\definecolor{usred}{RGB}{153,0,51}
+\definecolor{uscream}{RGB}{255,243,207}
+\definecolor{usgray}{RGB}{245,245,245}
+
+% Estilo decorativo para capítulos
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{usred}\centering}
+  {\color{usred}\rule{\textwidth}{3pt}\\[1.5cm]
+   \fontsize{30}{36}\selectfont\thechapter}
+  {0pt}
+  {\Huge\bfseries\color{usred}}
+  [\vspace{1.5cm}\color{usred}\rule{\textwidth}{3pt}]
+
+% Estilo decorativo para secciones
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{usred}}
+  {\thesection}{1em}{}
+  [\color{usred}\rule{0.2\textwidth}{1.5pt}]
+
+% Estilo decorativo para subsecciones
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{usred}}
+  {\thesubsection}{1em}{}
+  [\color{usred}\rule{0.1\textwidth}{1pt}]
+
+% Estilo decorativo para tablas
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% Cuadros de texto decorativos
+\tcbset{
+  highlightbox/.style={colback=uscream!80!white, colframe=usred, fonttitle=\bfseries, coltitle=usred, boxrule=1pt, arc=2mm, left=2mm, right=2mm, top=1mm, bottom=1mm}
+}
+
+\begin{document}
+
+% --- PORTADA DECORATIVA ---
+\begin{titlepage}
+    \thispagestyle{plain}
+    \pagenumbering{roman}
+    \setcounter{page}{1}
+    \centering
+    % Caja de título
+    \vspace*{2cm}
+    \noindent
+    \colorbox{uscream}{
+        \parbox{0.85\textwidth}{
+            \centering
+            \vspace{0.5cm}
+            {\bfseries\LARGE\color{usred} AutoSmart: Aplicación de Gestión de Mantenimientos de Vehículos\\[0.2cm]}
+            \vspace{0.5cm}
+        }
+    }
+    \vspace{1.5cm}
+
+    % Nombre del alumno y datos
+    {\Large\color{usred}\textbf{Fatima Mortahil Chachou}}\\[0.5cm]
+    {\large\color{usred}Trabajo Fin de Grado}\\[0.2cm]
+    {\large\color{usred}Supervisado por Dr. David Arriero Ollero}\\[2cm]
+
+    % Logo
+    \includegraphics[width=0.25\textwidth]{logo_us.png}\\[1.5cm]
+
+    % Universidad y fecha
+    {\large\color{usred}Universidad de Sevilla}\\[0.5cm]
+    {\large\color{usred}\today}
+    \vfill
+    % Número de página romano
+    {\color{usred}\textbf{\thepage}}
+\end{titlepage}
+
+% --- RESUMEN DECORATIVO ---
+\newpage
+\thispagestyle{plain}
+\setcounter{page}{2}
+\noindent
+\color{usred}\rule{\textwidth}{3pt}
+\vspace{1.5cm}
+
+\begin{center}
+    {\LARGE\bfseries\color{usred} RESUMEN}
+\end{center}
+
+\vspace{1.5cm}
+
+\begin{center}
+    \begin{minipage}{0.8\textwidth}
+        \centering
+        Aquí va tu resumen: un párrafo sobre el problema planteado en el proyecto y la solución. Máximo 300 palabras.
+    \end{minipage}
+\end{center}
+
+\vfill
+\color{usred}\rule{\textwidth}{3pt}
+
+\begin{center}
+    {\color{usred}\textbf{\thepage}}
+\end{center}
+
+% --- ÍNDICE GENERAL DECORATIVO ---
+\newpage
+\thispagestyle{plain}
+\setcounter{page}{3}
+\noindent
+\color{usred}\rule{\textwidth}{3pt}
+\vspace{1.5cm}
+
+\begin{center}
+    {\LARGE\bfseries\color{usred} ÍNDICE GENERAL}
+\end{center}
+
+\vspace{1cm}
+
+\tableofcontents
+
+\vfill
+\color{usred}\rule{\textwidth}{3pt}
+
+\begin{center}
+    {\color{usred}\textbf{\thepage}}
+\end{center}
+
+% --- CAMBIO A NUMERACIÓN ARÁBIGA ---
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% Ejemplo de capítulo decorativo
+\chapter{Introducción}
+Aquí comienza el contenido de tu TFG con el estilo decorativo de capítulos.
+
+\section{Ejemplo de sección decorativa}
+Texto de la sección.
+
+\subsection{Ejemplo de subsección decorativa}
+Texto de la subsección.
+
+% Ejemplo de tabla decorativa
+\begin{table}[h!]
+\centering
+\rowcolors{1}{usgray}{white}
+\begin{tabular}{L{4cm}C{3cm}R{3cm}}
+\toprule
+\rowcolor{uscream}
+\textbf{Columna 1} & \textbf{Columna 2} & \textbf{Columna 3} \\
+\midrule
+Dato 1 & Dato 2 & Dato 3 \\
+Dato 4 & Dato 5 & Dato 6 \\
+\bottomrule
+\end{tabular}
+\caption{Ejemplo de tabla decorativa}
+\end{table}
+
+% Ejemplo de cuadro decorativo
+\begin{tcolorbox}[highlightbox, title={Nota importante}]
+Este es un cuadro decorativo para resaltar información relevante en el TFG.
+\end{tcolorbox}
+
+% Puedes seguir con tus capítulos y apartados...
+
+\section{Estructura funcional del sistema}
+AutoSmart está diseñado para ser intuitivo y eficiente, permitiendo al usuario gestionar todos los aspectos relacionados con el mantenimiento de sus vehículos. El sistema se divide en varios módulos:
+
+\begin{itemize}
+    \item \textbf{Gestión de usuarios:} Permite el registro, autenticación y edición del perfil del usuario. Cada usuario tiene acceso privado a sus datos y vehículos.
+    \item \textbf{Gestión de vehículos:} El usuario puede añadir, editar o eliminar vehículos. Cada vehículo almacena información relevante como marca, modelo, año y matrícula.
+    \item \textbf{Gestión de mantenimientos:} Para cada vehículo, el usuario puede registrar mantenimientos, especificando fecha, tipo, descripción y coste. También puede editar o eliminar registros existentes.
+    \item \textbf{Historial y estadísticas:} El usuario puede consultar el historial de mantenimientos de cada vehículo, visualizar los gastos acumulados y filtrar por tipo de servicio.
+    \item \textbf{Notificaciones:} El sistema permite configurar recordatorios automáticos para los próximos mantenimientos, avisando al usuario mediante notificaciones push.
+    \item \textbf{Configuración y personalización:} El usuario puede ajustar sus preferencias, como la frecuencia de notificaciones, el tema visual de la app y la privacidad de sus datos.
+\end{itemize}
+
+Esta estructura modular facilita el mantenimiento y la escalabilidad de la aplicación, permitiendo añadir nuevas funcionalidades en el futuro. 
+\end{document} 

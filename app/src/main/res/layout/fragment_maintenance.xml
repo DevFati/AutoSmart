@@ -111,7 +111,7 @@
             <ImageView
                 android:layout_width="80dp"
                 android:layout_height="80dp"
-                android:src="@drawable/ic_tools"
+                android:src="@drawable/ic_service"
                 android:tint="@color/purple_200"/>
 
             <TextView
@@ -132,4 +132,18 @@
                 android:layout_marginTop="8dp"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/tvNoVehiclesMaint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No hay vehículos registrados"
+        android:textAppearance="@style/TextAppearance.AppCompat.Large"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
