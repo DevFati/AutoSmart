@@ -7,11 +7,19 @@ import android.os.Handler;
 
 import com.example.autosmart.R;
 
+/**
+ * Actividad principal de la aplicación AutoSmart.
+ * Gestiona la navegación y la inicialización principal.
+ */
 public class MainActivity extends AppCompatActivity {
 
     // Tiempo de espera en milisegundos (ej. 3 segundos)
     private static final int SPLASH_TIME_OUT = 3000;
 
+    /**
+     * Método llamado al crear la actividad.
+     * @param savedInstanceState Estado guardado.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

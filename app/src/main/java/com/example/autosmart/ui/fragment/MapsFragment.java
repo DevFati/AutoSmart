@@ -37,6 +37,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+/**
+ * Fragmento que muestra un mapa con la ubicación del usuario y de los talleres cercanos.
+ */
 public class MapsFragment extends Fragment {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private MapView map;

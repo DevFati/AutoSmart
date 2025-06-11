@@ -27,12 +27,14 @@ import com.example.autosmart.ui.fragment.SettingsFragment;
 import com.example.autosmart.ui.fragment.VehiclesFragment;
 import com.example.autosmart.data.db.AppDatabase;
 import com.example.autosmart.data.db.UserEntity;
+import com.example.autosmart.utils.FirebaseSyncManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,6 +51,24 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
+        // Verificar si el usuario está autenticado
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            // Si no hay usuario, volver al login
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        // Mostrar la UI inmediatamente
+        initializeUI();
+
+        // Sincronizar datos de Firebase en background
+        // FirebaseSyncManager syncManager = new FirebaseSyncManager(this);
+        // syncManager.syncUserData(this::reloadNavHeader);
+    }
+
+    private void initializeUI() {
         setupToolbar();
         setupNavigation();
         loadUserData();
@@ -91,43 +111,33 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
     }
 
     private void loadUserData() {
-        executor.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            UserEntity storedUser = db.userDao().getUser();
-            
-            runOnUiThread(() -> {
-                View headerView = navigationView.getHeaderView(0);
-                TextView tvUserName = headerView.findViewById(R.id.user_name);
-                TextView tvUserEmail = headerView.findViewById(R.id.user_email);
-                ImageView userAvatar = headerView.findViewById(R.id.user_avatar);
+        runOnUiThread(() -> {
+            View headerView = navigationView.getHeaderView(0);
+            TextView tvUserName = headerView.findViewById(R.id.user_name);
+            TextView tvUserEmail = headerView.findViewById(R.id.user_email);
+            ImageView userAvatar = headerView.findViewById(R.id.user_avatar);
 
-                if (storedUser != null) {
-                    try {
-                        String nombre = com.example.autosmart.utils.EncryptionUtils.decrypt(storedUser.getName());
-                        String email = com.example.autosmart.utils.EncryptionUtils.decrypt(storedUser.getEmail());
-                        tvUserName.setText(nombre);
-                        tvUserEmail.setText(email);
-                    } catch (Exception e) {
-                        tvUserName.setText(storedUser.getName());
-                        tvUserEmail.setText(storedUser.getEmail());
-                    }
-                }
+            SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+            String name = prefs.getString("username", "");
+            String photoUri = prefs.getString("profile_photo", null);
+            String email = FirebaseAuth.getInstance().getCurrentUser() != null ? FirebaseAuth.getInstance().getCurrentUser().getEmail() : "";
 
-                SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-                String name = prefs.getString("username", "");
-                String photoUri = prefs.getString("profile_photo", null);
-
-                if (name != null && !name.isEmpty()) {
-                    tvUserName.setText(name);
-                }
-
-                if (photoUri != null && !photoUri.isEmpty()) {
-                    Glide.with(this)
-                        .load(photoUri)
-                        .circleCrop()
-                        .into(userAvatar);
-                }
-            });
+            if (name != null && !name.isEmpty()) {
+                tvUserName.setText(name);
+            }
+            if (email != null && !email.isEmpty()) {
+                tvUserEmail.setText(email);
+            }
+            if (photoUri != null && !photoUri.isEmpty()) {
+                Glide.with(this)
+                    .load(photoUri)
+                    .placeholder(R.drawable.ic_profile)
+                    .error(R.drawable.ic_profile)
+                    .circleCrop()
+                    .into(userAvatar);
+            } else {
+                userAvatar.setImageResource(R.drawable.ic_profile);
+            }
         });
     }
 
@@ -148,6 +158,7 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
             fragment = new MapsFragment();
         } else if (id == R.id.nav_settings) {
             fragment = new SettingsFragment();
+            navigationView.setCheckedItem(R.id.nav_settings);
         } else if (id == R.id.nav_logout) {
             handleLogout();
             return true;
@@ -228,5 +239,11 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdown();
+    }
+
+    public void closeDrawer() {
+        if (drawer != null && drawer.isDrawerOpen(navigationView)) {
+            drawer.closeDrawers();
+        }
     }
 }

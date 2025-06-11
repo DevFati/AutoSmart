@@ -12,6 +12,9 @@ import com.example.autosmart.data.db.VehicleEntity;
 
 import java.util.List;
 
+/**
+ * DAO para acceder a los datos de vehículos en la base de datos local.
+ */
 @Dao
 public interface VehicleDao {
     @Query("SELECT * FROM vehicles WHERE userId = :userId")

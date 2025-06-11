@@ -73,6 +73,7 @@ dependencies {
     implementation("org.osmdroid:osmdroid-mapsforge:6.1.16")
     implementation("org.osmdroid:osmdroid-geopackage:6.1.16")
     implementation(libs.preference)
+    implementation(libs.junit.junit)
 
     // Room components
 

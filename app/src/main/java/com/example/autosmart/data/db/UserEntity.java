@@ -5,22 +5,41 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import com.example.autosmart.utils.EncryptionUtils;
 
-@Entity(tableName = "user")
+/**
+ * Entidad que representa un usuario en la base de datos local (Room).
+ * Almacena información cifrada del usuario.
+ */
+@Entity(tableName = "users")
 public class UserEntity {
 
+    /** Identificador único de Firebase para el usuario. */
     @PrimaryKey
     @NonNull
     private String firebaseUid;
 
+    /** Nombre cifrado del usuario. */
     private String name;    // Almacenará el nombre cifrado
+    /** Email cifrado del usuario. */
     private String email;   // Almacenará el email cifrado
+    /** Indica si el nombre está cifrado. */
     private boolean isNameEncrypted = false;
+    /** Indica si el email está cifrado. */
     private boolean isEmailEncrypted = false;
 
-    // Constructor vacío requerido por Room
+    private String photoUrl;
+    private long lastSync;
+
+    /**
+     * Constructor vacío requerido por Room.
+     */
     public UserEntity() { }
 
-    // Constructor con parámetros
+    /**
+     * Constructor con parámetros.
+     * @param firebaseUid UID de Firebase.
+     * @param name Nombre del usuario.
+     * @param email Email del usuario.
+     */
     public UserEntity(@NonNull String firebaseUid, String name, String email) {
         this.firebaseUid = firebaseUid;
         try {
@@ -40,12 +59,19 @@ public class UserEntity {
         }
     }
 
-    // Getters y Setters
+    /**
+     * Obtiene el UID de Firebase.
+     * @return UID de Firebase.
+     */
     @NonNull
     public String getFirebaseUid() {
         return firebaseUid;
     }
 
+    /**
+     * Establece el UID de Firebase.
+     * @param firebaseUid Nuevo UID.
+     */
     public void setFirebaseUid(@NonNull String firebaseUid) {
         this.firebaseUid = firebaseUid;
     }
@@ -108,4 +134,10 @@ public class UserEntity {
     public void setEmailEncrypted(boolean emailEncrypted) {
         isEmailEncrypted = emailEncrypted;
     }
+
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+
+    public long getLastSync() { return lastSync; }
+    public void setLastSync(long lastSync) { this.lastSync = lastSync; }
 }

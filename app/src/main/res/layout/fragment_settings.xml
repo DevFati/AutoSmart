@@ -57,7 +57,8 @@
                     android:background="@android:color/transparent"
                     android:textStyle="bold"
                     android:paddingTop="12dp"
-                    android:paddingBottom="4dp" />
+                    android:paddingBottom="4dp"
+                    android:maxLength="20" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -97,34 +98,6 @@
                         android:layout_height="wrap_content"
                         android:text="Oscuro" />
                 </RadioGroup>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Notificaciones -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            android:layout_marginBottom="20dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Notificaciones"
-                    android:textStyle="bold"
-                    android:textSize="16sp" />
-                <Switch
-                    android:id="@+id/switchMaint"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Recordatorio de mantenimiento" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

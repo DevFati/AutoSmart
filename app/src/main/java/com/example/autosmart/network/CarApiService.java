@@ -12,13 +12,26 @@ import retrofit2.http.GET;
 import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 
+/**
+ * Interfaz de Retrofit para acceder a los endpoints de la API de vehículos.
+ */
 public interface CarApiService {
 
-    // Obtener años disponibles (rango)
+    /**
+     * Obtiene los años disponibles.
+     * @param cmd Comando de la API.
+     * @return Llamada Retrofit con YearsResponse.
+     */
     @GET(".")
     Call<YearsResponse> getYears(@Query("cmd") String cmd);
 
-    // Obtener marcas por año
+    /**
+     * Obtiene las marcas por año.
+     * @param cmd Comando de la API.
+     * @param year Año.
+     * @param soldInUs Indica si es vendido en USA.
+     * @return Llamada Retrofit con MakesResponse.
+     */
     @GET(".")
     Call<MakesResponse> getMakes(
             @Query("cmd") String cmd,
@@ -26,7 +39,13 @@ public interface CarApiService {
             @Query("sold_in_us") int soldInUs // Opcional: 1 para USA
     );
 
-    // Obtener modelos por marca y año
+    /**
+     * Obtiene los modelos por marca y año.
+     * @param cmd Comando de la API.
+     * @param makeId ID de la marca.
+     * @param year Año.
+     * @return Llamada Retrofit con ModelsResponse.
+     */
     @GET(".")
     Call<ModelsResponse> getModels(
             @Query("cmd") String cmd,
@@ -34,7 +53,12 @@ public interface CarApiService {
             @Query("year") String year
     );
 
-    // Obtener versiones (trims) con múltiples filtros
+    /**
+     * Obtiene los acabados (trims) con múltiples filtros.
+     * @param cmd Comando de la API.
+     * @param options Opciones de filtro.
+     * @return Llamada Retrofit con TrimsResponse.
+     */
     @GET(".")
     Call<TrimsResponse> getTrims(
             @Query("cmd") String cmd,

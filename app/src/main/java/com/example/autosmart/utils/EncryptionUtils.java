@@ -10,11 +10,20 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
+/**
+ * Utilidad para cifrar y descifrar datos sensibles usando el Keystore de Android.
+ */
 public class EncryptionUtils {
     private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
     private static final String KEY_ALIAS = "AutoSmartKey";
 
+    /**
+     * Cifra un texto plano usando AES/GCM.
+     * @param plaintext Texto a cifrar.
+     * @return Texto cifrado en Base64.
+     * @throws Exception Si ocurre un error durante el cifrado.
+     */
     public static String encrypt(String plaintext) throws Exception {
         KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
         keyStore.load(null);
@@ -54,6 +63,12 @@ public class EncryptionUtils {
         return Base64.encodeToString(combined, Base64.DEFAULT);
     }
 
+    /**
+     * Descifra un texto cifrado usando AES/GCM.
+     * @param encryptedData Texto cifrado en Base64.
+     * @return Texto descifrado.
+     * @throws Exception Si ocurre un error durante el descifrado.
+     */
     public static String decrypt(String encryptedData) throws Exception {
         KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
         keyStore.load(null);

@@ -9,7 +9,10 @@ import com.example.autosmart.data.dao.MaintenanceDao;
 import com.example.autosmart.data.dao.UserDao;
 import com.example.autosmart.data.dao.VehicleDao;
 
-@Database(entities = {UserEntity.class, MaintenanceEntity.class, VehicleEntity.class}, version = 9, exportSchema = false)
+/**
+ * Base de datos principal de la aplicación, gestionada por Room.
+ */
+@Database(entities = {UserEntity.class, MaintenanceEntity.class, VehicleEntity.class}, version = 11, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase instance;

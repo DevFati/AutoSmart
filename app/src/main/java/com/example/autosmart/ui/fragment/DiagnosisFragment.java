@@ -37,6 +37,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+/**
+ * Fragmento que permite buscar y mostrar información de códigos OBD, así como el historial de diagnósticos.
+ */
 public class DiagnosisFragment extends Fragment {
 
     private TextInputEditText etObdCode;
@@ -51,6 +54,13 @@ public class DiagnosisFragment extends Fragment {
     private final List<DiagnosisResult> history = new ArrayList<>();
     private DiagnosisHistoryAdapter historyAdapter;
 
+    /**
+     * Se llama para crear y devolver la jerarquía de vistas asociada al fragmento.
+     * @param inflater El LayoutInflater.
+     * @param container El contenedor padre.
+     * @param savedInstanceState Estado guardado.
+     * @return Vista raíz del fragmento.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -77,6 +87,9 @@ public class DiagnosisFragment extends Fragment {
         return root;
     }
 
+    /**
+     * Realiza la búsqueda del código OBD introducido y actualiza el historial.
+     */
     private void searchObdCode() {
         String code = etObdCode.getText().toString().trim().toUpperCase();
         if (TextUtils.isEmpty(code)) {
@@ -166,6 +179,11 @@ public class DiagnosisFragment extends Fragment {
         });
     }
 
+    /**
+     * Traduce un texto usando la API de Google Translate.
+     * @param text Texto a traducir.
+     * @param callback Callback con el texto traducido.
+     */
     private void translateText(String text, OnTranslationReady callback) {
         OkHttpClient client = new OkHttpClient();
         String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=" + Uri.encode(text);
@@ -193,6 +211,10 @@ public class DiagnosisFragment extends Fragment {
         void onReady(String translatedText);
     }
 
+    /**
+     * Muestra el resultado de un diagnóstico en la interfaz.
+     * @param result Resultado del diagnóstico.
+     */
     private void showResult(DiagnosisResult result) {
         cardResult.setVisibility(View.VISIBLE);
         tvObdCode.setText("Código: " + result.getCode());
@@ -207,17 +229,37 @@ public class DiagnosisFragment extends Fragment {
         historyAdapter.notifyDataSetChanged();
     }
 
-    // Modelo simple para el resultado
+    /**
+     * Modelo simple para el resultado de un diagnóstico OBD.
+     */
     public static class DiagnosisResult {
         private String code, definition;
         private List<String> causes;
+        /**
+         * Constructor de DiagnosisResult.
+         * @param code Código OBD.
+         * @param definition Definición del código.
+         * @param causes Lista de causas posibles.
+         */
         public DiagnosisResult(String code, String definition, List<String> causes) {
             this.code = code;
             this.definition = definition;
             this.causes = causes;
         }
+        /**
+         * Obtiene el código OBD.
+         * @return Código OBD.
+         */
         public String getCode() { return code; }
+        /**
+         * Obtiene la definición del código.
+         * @return Definición.
+         */
         public String getDefinition() { return definition; }
+        /**
+         * Obtiene la lista de causas posibles.
+         * @return Lista de causas.
+         */
         public List<String> getCauses() { return causes; }
     }
 } 

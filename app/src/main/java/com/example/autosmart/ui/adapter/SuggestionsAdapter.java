@@ -13,11 +13,18 @@ import com.example.autosmart.model.MaintenanceSuggestion;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapter para mostrar sugerencias de mantenimiento en un RecyclerView.
+ */
 public class SuggestionsAdapter
         extends RecyclerView.Adapter<SuggestionsAdapter.VH> {
 
     private final List<MaintenanceSuggestion> items = new ArrayList<>();
 
+    /**
+     * Actualiza la lista de sugerencias a mostrar.
+     * @param list Lista de sugerencias de mantenimiento.
+     */
     public void submitList(List<MaintenanceSuggestion> list) {
         items.clear();
         items.addAll(list);

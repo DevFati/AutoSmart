@@ -3,22 +3,37 @@ package com.example.autosmart.data.db;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+import androidx.room.Ignore;
 
 import com.example.autosmart.model.Vehicle;
 import com.example.autosmart.utils.EncryptionUtils;
 
+/**
+ * Entidad que representa un vehículo en la base de datos local (Room).
+ * Almacena información cifrada de la matrícula.
+ */
 @Entity(tableName = "vehicles")
 public class VehicleEntity {
+    /** Identificador único del vehículo. */
     @PrimaryKey
     @NonNull
     private String id;
+    /** Marca del vehículo. */
     private String brand;
+    /** Modelo del vehículo. */
     private String model;
+    /** Año del vehículo. */
     private String year;
+    /** Tipo de motor del vehículo. */
     private String engineType;
+    /** ID del usuario propietario. */
     private String userId;
+    /** Matrícula cifrada del vehículo. */
     private String plate;  // Almacenará la matrícula cifrada
+    /** Indica si la matrícula está cifrada. */
     private boolean isPlateEncrypted = false;
+    @Ignore
+    private Object maintenances;
 
     // Constructor vacío requerido por Room
     public VehicleEntity() { }
@@ -128,6 +143,11 @@ public class VehicleEntity {
     public void setPlateEncrypted(boolean plateEncrypted) {
         isPlateEncrypted = plateEncrypted;
     }
+
+    @Ignore
+    public Object getMaintenances() { return maintenances; }
+    @Ignore
+    public void setMaintenances(Object maintenances) { this.maintenances = maintenances; }
 
     // Método para convertir de Vehicle a VehicleEntity
     public static VehicleEntity fromVehicle(Vehicle vehicle) {

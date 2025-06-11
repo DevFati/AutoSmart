@@ -32,6 +32,9 @@ import com.google.firebase.database.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Fragmento que muestra la lista de vehículos del usuario y permite gestionarlos.
+ */
 public class VehiclesFragment extends Fragment {
     private static final int RC_ADD_VEHICLE = 5001;
 

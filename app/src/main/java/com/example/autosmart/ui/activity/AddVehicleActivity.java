@@ -392,7 +392,6 @@ public class AddVehicleActivity extends AppCompatActivity {
                                     AppDatabase.getInstance(AddVehicleActivity.this)
                                         .vehicleDao()
                                         .insert(VehicleEntity.fromVehicle(vehicle));
-                                    
                                     Toast.makeText(AddVehicleActivity.this, "Vehículo guardado", Toast.LENGTH_SHORT).show();
                                     finish();
                                 })

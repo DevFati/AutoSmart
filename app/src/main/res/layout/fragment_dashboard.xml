@@ -147,7 +147,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Estadísticas"
+                    android:text="Resumen"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/purple_700"
@@ -212,7 +212,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Tarjeta de Próximos Mantenimientos -->
+        <!-- Tarjeta de Próximo Mantenimiento -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -229,7 +229,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Próximos Mantenimientos"
+                    android:text="Próximo Mantenimiento"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/purple_700"
@@ -266,11 +266,19 @@
                     android:textColor="@color/purple_700"
                     android:layout_marginBottom="12dp"/>
 
-                <Spinner
-                    android:id="@+id/spinnerHistoryVehicle"
-                    android:layout_width="wrap_content"
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"/>
+                    android:hint="Selecciona vehículo"
+                    android:layout_marginBottom="12dp">
+                    <AutoCompleteTextView
+                        android:id="@+id/spinnerHistoryVehicle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/purple_700"
+                        android:inputType="none"/>
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Cabecera tipo tabla -->
                 <LinearLayout

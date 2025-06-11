@@ -45,6 +45,10 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import com.example.autosmart.utils.EncryptionUtils;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.text.ParseException;
+
 /**
  * Activity para agregar o editar un mantenimiento.
  */
@@ -179,15 +183,17 @@ public class AddMaintenanceActivity extends AppCompatActivity {
             if (editingId >= 0) {
                 MaintenanceEntity exist = dao.findById(editingId);
                 if (exist != null) {
-                    etDate.setText(exist.date);
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    String formattedDate = sdf.format(new Date(exist.date));
+                    etDate.setText(formattedDate);
                     etType.setText(exist.type);
                     etDesc.setText(exist.description);
                     etCost.setText(String.valueOf(exist.cost));
                     pendingVehicleId = exist.vehicleId;
                     pendingPlate = exist.vehiclePlate;
                     // Si la hora está en la fecha ("2025-05-01 14:30"), sepárala
-                    if (exist.date != null && exist.date.contains(" ")) {
-                        String[] parts = exist.date.split(" ");
+                    if (formattedDate.contains(" ")) {
+                        String[] parts = formattedDate.split(" ");
                         etDate.setText(parts[0]);
                         etTime.setText(parts[1]);
                     }
@@ -384,23 +390,52 @@ public class AddMaintenanceActivity extends AppCompatActivity {
         String plate = etPlate.getText().toString().trim();
         android.util.Log.d("AddMaintenance", "Guardando mantenimiento: userId=" + userId + ", vehId=" + vehId + ", plate=" + plate);
 
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+        long timestamp;
+        try {
+            Date parsedDate = sdf.parse(dateTime);
+            timestamp = parsedDate.getTime();
+        } catch (ParseException e) {
+            showErrorSnackbar("Formato de fecha inválido");
+            return;
+        }
+
         if (editingId < 0) {
             // Nuevo
             MaintenanceEntity m = new MaintenanceEntity(
-                    userId, vehId, plate, dateTime, type, desc, cost, kilometraje
+                    userId, vehId, plate, timestamp, type, desc, cost, kilometraje
             );
             long id = dao.insert(m);
             android.util.Log.d("AddMaintenance", "Nuevo mantenimiento guardado con ID: " + id);
+            // Guardar en Firebase como subnodo de 'maintenances' bajo el vehículo
+            DatabaseReference maintRef = FirebaseDatabase.getInstance()
+                .getReference("vehicles")
+                .child(vehId)
+                .child("maintenances");
+            String maintId = maintRef.push().getKey();
+            if (maintId != null) {
+                Map<String, Object> maintData = new HashMap<>();
+                maintData.put("userId", userId);
+                maintData.put("vehicleId", vehId);
+                maintData.put("vehiclePlate", plate);
+                maintData.put("date", timestamp);
+                maintData.put("type", type);
+                maintData.put("description", desc);
+                maintData.put("cost", cost);
+                maintData.put("kilometraje", kilometraje);
+                maintData.put("isDeleted", false);
+                maintRef.child(maintId).setValue(maintData);
+            }
             programarNotificacionMantenimiento(date, time, type, vehId, plate);
         } else {
             // Actualizar
             MaintenanceEntity exist = dao.findById(editingId);
-            exist.vehicleId  = vehId;
+            exist.vehicleId = vehId;
             exist.vehiclePlate = plate;
-            exist.date       = dateTime;
-            exist.type       = type;
-            exist.description= desc;
-            exist.cost       = cost;
+            exist.date = timestamp;
+            exist.type = type;
+            exist.description = desc;
+            exist.cost = cost;
             exist.kilometraje = kilometraje;
             dao.update(exist);
             android.util.Log.d("AddMaintenance", "Mantenimiento actualizado ID: " + editingId);

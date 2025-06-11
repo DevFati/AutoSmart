@@ -11,6 +11,9 @@ import com.example.autosmart.data.db.MaintenanceEntity;
 
 import java.util.List;
 
+/**
+ * DAO para acceder a los datos de mantenimientos en la base de datos local.
+ */
 @Dao
 public interface MaintenanceDao {
     @Query("SELECT * FROM maintenance WHERE userId = :userId ORDER BY date DESC")
@@ -33,11 +36,11 @@ public interface MaintenanceDao {
     @Query("SELECT COUNT(*) FROM maintenance WHERE userId = :userId")
     int countMaintenanceForUser(String userId);
 
-    @Query("SELECT COUNT(*) FROM maintenance")
+    @Query("SELECT COUNT(*) FROM maintenance WHERE isDeleted = 0")
     int getMaintenanceCount();
 
-    @Query("SELECT * FROM maintenance WHERE date >= :today ORDER BY date ASC LIMIT 1")
-    MaintenanceEntity getNextMaintenance(String today);
+    @Query("SELECT * FROM maintenance WHERE date >= :todayTimestamp AND isDeleted = 0 ORDER BY date ASC LIMIT 1")
+    MaintenanceEntity getNextMaintenance(long todayTimestamp);
 
     @Query("SELECT * FROM maintenance WHERE userId = :userId ORDER BY date DESC")
     List<MaintenanceEntity> getAllForUser(String userId);

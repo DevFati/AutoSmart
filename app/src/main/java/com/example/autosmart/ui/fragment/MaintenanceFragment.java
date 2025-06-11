@@ -19,6 +19,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.autosmart.data.db.VehicleEntity;
 import com.example.autosmart.ui.adapter.MaintenanceAdapter;
 import com.example.autosmart.R;
 import com.example.autosmart.data.dao.MaintenanceDao;
@@ -31,6 +32,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 import com.google.android.material.snackbar.Snackbar;
 import androidx.core.content.ContextCompat;
+import com.example.autosmart.model.Maintenance;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,7 +73,7 @@ public class MaintenanceFragment extends Fragment {
         // DAO + Recycler
         dao = AppDatabase.getInstance(requireContext()).maintenanceDao();
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new MaintenanceAdapter(vehicleLabelById, new MaintenanceAdapter.OnItemActionListener() {
+        adapter = new MaintenanceAdapter(requireContext(), vehicleLabelById, new MaintenanceAdapter.OnItemActionListener() {
             @Override
             public void onEdit(MaintenanceEntity m) {
                 Intent i = new Intent(getContext(), AddMaintenanceActivity.class);
@@ -135,8 +137,16 @@ public class MaintenanceFragment extends Fragment {
         if (vehId == null) {
             // TODOS
             dao.loadAll(userId).observe(getViewLifecycleOwner(), list -> {
-                adapter.setItems(list);
-                if (list == null || list.isEmpty()) {
+                android.util.Log.d("DEBUG", "Mantenimientos en Room (todos): " + (list != null ? list.size() : 0));
+                List<MaintenanceEntity> filtered = new ArrayList<>();
+                if (list != null) {
+                    for (MaintenanceEntity m : list) {
+                        android.util.Log.d("DEBUG", "Mantenimiento: id=" + m.id + ", vehicleId=" + m.vehicleId + ", userId=" + m.userId + ", isDeleted=" + m.isDeleted);
+                        if (!m.isDeleted) filtered.add(m);
+                    }
+                }
+                adapter.setItems(filtered);
+                if (filtered.isEmpty()) {
                     rv.setVisibility(View.GONE);
                     emptyState.setVisibility(View.VISIBLE);
                 } else {
@@ -147,8 +157,16 @@ public class MaintenanceFragment extends Fragment {
         } else {
             // SOLO ESE VEHÍCULO
             dao.loadForVehicle(userId, vehId).observe(getViewLifecycleOwner(), list -> {
-                adapter.setItems(list);
-                if (list == null || list.isEmpty()) {
+                android.util.Log.d("DEBUG", "Mantenimientos en Room (vehículo): " + (list != null ? list.size() : 0));
+                List<MaintenanceEntity> filtered = new ArrayList<>();
+                if (list != null) {
+                    for (MaintenanceEntity m : list) {
+                        android.util.Log.d("DEBUG", "Mantenimiento: id=" + m.id + ", vehicleId=" + m.vehicleId + ", userId=" + m.userId + ", isDeleted=" + m.isDeleted);
+                        if (!m.isDeleted) filtered.add(m);
+                    }
+                }
+                adapter.setItems(filtered);
+                if (filtered.isEmpty()) {
                     rv.setVisibility(View.GONE);
                     emptyState.setVisibility(View.VISIBLE);
                 } else {
@@ -161,60 +179,51 @@ public class MaintenanceFragment extends Fragment {
 
     /** Carga vehículos del usuario y mantiene "Todos…" en posición 0 */
     private void loadVehiclesIntoSpinner() {
-        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference ref = FirebaseDatabase
-                .getInstance("https://autosmart-6e3c3-default-rtdb.firebaseio.com")
-                .getReference("vehicles");
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        AppDatabase.getInstance(requireContext()).vehicleDao()
+            .loadAll(userId)
+            .observe(getViewLifecycleOwner(), vehicles -> {
+                android.util.Log.d("DEBUG", "Vehículos en Room: " + (vehicles != null ? vehicles.size() : 0));
+                if (vehicles != null) {
+                    for (VehicleEntity v : vehicles) {
+                        android.util.Log.d("DEBUG", "Vehículo: id=" + v.getId() + ", brand=" + v.getBrand() + ", userId=" + v.getUserId());
+                    }
+                }
+                vehicleLabels.clear();
+                vehicleIds.clear();
+                vehicleLabelById.clear();
+                vehicleLabels.add("Todos los vehículos");
+                vehicleIds.add(null);
 
-        ref.orderByChild("userId").equalTo(uid)
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snap) {
-                        // limpia solo índices >=1
-                        if (vehicleLabels.size() > 1) {
-                            vehicleLabels.subList(1, vehicleLabels.size()).clear();
-                            vehicleIds   .subList(1, vehicleIds.size()).clear();
-                            vehicleLabelById.clear();
-                        }
-                        for (DataSnapshot ds : snap.getChildren()) {
-                            Vehicle v = ds.getValue(Vehicle.class);
-                            if (v != null) {
-                                String label = v.getBrand()
-                                        + " " + v.getModel()
-                                        + " (" + v.getYear() + ")";
-                                vehicleLabels.add(label);
-                                vehicleIds   .add(v.getId());
-                                vehicleLabelById.put(v.getId(), label);
-                            }
-                        }
-                        vehicleSpinnerAdapter.notifyDataSetChanged();
-                        adapter.setLabelById(new HashMap<>(vehicleLabelById));
-                        if (vehicleLabels.size() <= 1) {
-                            tvNoVehiclesMaint.setVisibility(View.VISIBLE);
-                            spinnerVehicles.setVisibility(View.GONE);
-                            rv.setVisibility(View.GONE);
-                            fab.setVisibility(View.GONE);
-                            emptyState.setVisibility(View.GONE);
-                        } else {
-                            tvNoVehiclesMaint.setVisibility(View.GONE);
-                            spinnerVehicles.setVisibility(View.VISIBLE);
-                            rv.setVisibility(View.VISIBLE);
-                            fab.setVisibility(View.VISIBLE);
-                            emptyState.setVisibility(View.GONE);
-                            // Dispara el filtro inicial correctamente
-                            spinnerVehicles.post(() -> {
-                                spinnerVehicles.setText("Todos los vehículos", false);
-                                filterMaintenancesByVehicle(0);
-                            });
-                        }
+                if (vehicles != null) {
+                    for (VehicleEntity v : vehicles) {
+                        String label = v.getBrand() + " " + v.getModel() + " (" + v.getYear() + ")";
+                        vehicleLabels.add(label);
+                        vehicleIds.add(v.getId());
+                        vehicleLabelById.put(v.getId(), label);
                     }
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError err) {
-                        Toast.makeText(getContext(),
-                                "Error cargando vehículos: " + err.getMessage(),
-                                Toast.LENGTH_SHORT).show();
-                    }
+                }
+                vehicleSpinnerAdapter.notifyDataSetChanged();
+                adapter.setLabelById(new HashMap<>(vehicleLabelById));
+                // Siempre dispara el filtro inicial tras cargar vehículos
+                spinnerVehicles.post(() -> {
+                    spinnerVehicles.setText("Todos los vehículos", false);
+                    filterMaintenancesByVehicle(0);
                 });
+                if (vehicleLabels.size() <= 1) {
+                    tvNoVehiclesMaint.setVisibility(View.VISIBLE);
+                    spinnerVehicles.setVisibility(View.GONE);
+                    rv.setVisibility(View.GONE);
+                    fab.setVisibility(View.GONE);
+                    emptyState.setVisibility(View.GONE);
+                } else {
+                    tvNoVehiclesMaint.setVisibility(View.GONE);
+                    spinnerVehicles.setVisibility(View.VISIBLE);
+                    rv.setVisibility(View.VISIBLE);
+                    fab.setVisibility(View.VISIBLE);
+                    emptyState.setVisibility(View.GONE);
+                }
+            });
     }
 
     @Override
@@ -234,5 +243,11 @@ public class MaintenanceFragment extends Fragment {
         snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
         snackbar.setAction("OK", v -> {});
         snackbar.show();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadVehiclesIntoSpinner();
     }
 }

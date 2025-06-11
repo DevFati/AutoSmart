@@ -14,6 +14,7 @@ import android.widget.Toast;
 import com.example.autosmart.R;
 import com.example.autosmart.data.db.AppDatabase;
 import com.example.autosmart.data.db.UserEntity;
+import com.example.autosmart.utils.FirebaseSyncManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -30,6 +31,7 @@ import com.google.android.gms.common.SignInButton;
 import com.google.android.material.snackbar.Snackbar;
 import androidx.core.content.ContextCompat;
 import android.content.SharedPreferences;
+import android.net.Uri;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -118,12 +120,13 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onStart() {
+    protected void onStart() {
         super.onStart();
-        // Si el usuario ya está autenticado, se salta el login
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            updateUI(currentUser);
+            Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
+            startActivity(intent);
+            finish();
         }
     }
 
@@ -305,37 +308,14 @@ public class LoginActivity extends AppCompatActivity {
                 mAuth.signOut();
                 return;
             }
-            SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-            String loginMethod = prefs.getString("login_method", "email");
-            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            // Cifrar explícitamente nombre y email antes de guardar
-            String displayName = user.getDisplayName();
-            if (displayName == null || displayName.isEmpty()) {
-                displayName = user.getEmail();
-            }
-            String encryptedName, encryptedEmail;
-            try {
-                encryptedName = com.example.autosmart.utils.EncryptionUtils.encrypt(displayName);
-            } catch (Exception e) {
-                encryptedName = displayName;
-            }
-            try {
-                encryptedEmail = com.example.autosmart.utils.EncryptionUtils.encrypt(user.getEmail());
-            } catch (Exception e) {
-                encryptedEmail = user.getEmail();
-            }
-            UserEntity userEntity = new UserEntity();
-            userEntity.setFirebaseUid(user.getUid());
-            userEntity.setName(encryptedName);
-            userEntity.setEmail(encryptedEmail);
-            userEntity.setNameEncrypted(true);
-            userEntity.setEmailEncrypted(true);
-            db.userDao().insertUser(userEntity);
-            // Guardar en SharedPreferences
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("username", displayName);
-            editor.apply();
-            // Redirigir al Dashboard
+            // Ya no guardar nombre ni foto en SharedPreferences aquí
+            // Solo continuar con el flujo de navegación
+            // FirebaseSyncManager syncManager = new FirebaseSyncManager(this);
+            // syncManager.syncUserData(() -> {
+            //     Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
+            //     startActivity(intent);
+            //     finish();
+            // });
             Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
             startActivity(intent);
             finish();

@@ -1,16 +1,20 @@
 package com.example.autosmart.model;
 
-import com.example.autosmart.utils.EncryptionUtils;
+import androidx.room.Ignore;
+import java.util.List;
 
+/**
+ * Representa un vehículo en la aplicación AutoSmart.
+ * Versión simplificada para Firebase.
+ */
 public class Vehicle {
     private String id;
     private String brand;
     private String model;
     private String year;
     private String engineType;
-    private String userId;   // ← nuevo campo
-    private String plate;  // Almacenará la matrícula cifrada
-    private boolean isPlateEncrypted = false; // Nuevo campo para controlar si la matrícula está cifrada
+    private String userId;
+    private String plate;  // Matrícula sin cifrar para Firebase
 
     // Constructor vacío requerido por Firebase
     public Vehicle() { }
@@ -23,19 +27,14 @@ public class Vehicle {
         this.year = year;
         this.engineType = engineType;
         this.userId = userId;
-        try {
-            this.plate = EncryptionUtils.encrypt(plate);
-            this.isPlateEncrypted = true;
-        } catch (Exception e) {
-            this.plate = plate;
-            this.isPlateEncrypted = false;
-        }
+        this.plate = plate;
     }
 
     // Getters y Setters
     public String getId() {
         return id;
     }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -43,6 +42,7 @@ public class Vehicle {
     public String getBrand() {
         return brand;
     }
+
     public void setBrand(String brand) {
         this.brand = brand;
     }
@@ -50,6 +50,7 @@ public class Vehicle {
     public String getModel() {
         return model;
     }
+
     public void setModel(String model) {
         this.model = model;
     }
@@ -57,39 +58,32 @@ public class Vehicle {
     public String getYear() {
         return year;
     }
+
     public void setYear(String year) {
         this.year = year;
     }
 
-    public String getEngineType() { return engineType; }
-    public void setEngineType(String engineType) { this.engineType = engineType; }
-
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-
-    public String getPlate() { 
-        if (!isPlateEncrypted) {
-            return plate;
-        }
-        try {
-            return EncryptionUtils.decrypt(plate);
-        } catch (Exception e) {
-            return plate; // En caso de error, devolver sin descifrar
-        }
-    }
-    
-    public void setPlate(String plate) { 
-        try {
-            this.plate = EncryptionUtils.encrypt(plate);
-            this.isPlateEncrypted = true;
-        } catch (Exception e) {
-            this.plate = plate;
-            this.isPlateEncrypted = false;
-        }
+    public String getEngineType() {
+        return engineType;
     }
 
-    // Método para verificar si la matrícula está cifrada
-    public boolean isPlateEncrypted() {
-        return isPlateEncrypted;
+    public void setEngineType(String engineType) {
+        this.engineType = engineType;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getPlate() {
+        return plate;
+    }
+
+    public void setPlate(String plate) {
+        this.plate = plate;
     }
 } 

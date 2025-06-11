@@ -13,10 +13,17 @@ import com.example.autosmart.ui.fragment.DiagnosisFragment;
 
 import java.util.List;
 
+/**
+ * Adapter para mostrar el historial de diagnósticos OBD en un RecyclerView.
+ */
 public class DiagnosisHistoryAdapter extends RecyclerView.Adapter<DiagnosisHistoryAdapter.HistoryViewHolder> {
 
     private final List<DiagnosisFragment.DiagnosisResult> history;
 
+    /**
+     * Constructor del adapter.
+     * @param history Lista de resultados de diagnóstico.
+     */
     public DiagnosisHistoryAdapter(List<DiagnosisFragment.DiagnosisResult> history) {
         this.history = history;
     }
@@ -36,6 +43,10 @@ public class DiagnosisHistoryAdapter extends RecyclerView.Adapter<DiagnosisHisto
         holder.tvDefinition.setText(item.getDefinition());
     }
 
+    /**
+     * Devuelve el número de elementos en el historial.
+     * @return Número de elementos.
+     */
     @Override
     public int getItemCount() {
         return history.size();

@@ -17,12 +17,19 @@ import com.example.autosmart.utils.EncryptionUtils;
 
 import java.util.List;
 
+/**
+ * Adapter para mostrar la lista de vehículos en un RecyclerView.
+ */
 public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleViewHolder> {
 
+    /**
+     * Interfaz para manejar clicks largos en un vehículo.
+     */
     public interface OnItemLongClickListener {
         /**
-         * @param vehicle  El vehículo sobre el que se hizo long click.
-         * @param position Posición en el adapter.
+         * Se llama cuando se hace long click en un vehículo.
+         * @param vehicle El vehículo seleccionado.
+         * @param position Posición en la lista.
          * @return true si el evento fue consumido.
          */
         boolean onItemLongClick(Vehicle vehicle, int position);

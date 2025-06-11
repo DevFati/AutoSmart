@@ -77,40 +77,10 @@ public class ProfileSetupActivity extends AppCompatActivity {
             }
             editor.apply();
 
-            // Guardar en base de datos local
-            String email = getIntent().getStringExtra("email");
-            String uid = getIntent().getStringExtra("uid");
-            UserEntity userEntity = new UserEntity(uid, username, email);
-            db.userDao().insertUser(userEntity);
-
-            // Actualizar el perfil de Firebase Auth
-            com.google.firebase.auth.FirebaseUser firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
-            if (firebaseUser != null) {
-                com.google.firebase.auth.UserProfileChangeRequest profileUpdates = new com.google.firebase.auth.UserProfileChangeRequest.Builder()
-                    .setDisplayName(username)
-                    .setPhotoUri(selectedImageUri != null ? selectedImageUri : Uri.parse(defaultPhotoUri))
-                    .build();
-                firebaseUser.updateProfile(profileUpdates);
-            }
-
             // Ir al Dashboard
-            View rootView = findViewById(android.R.id.content);
-            com.google.android.material.snackbar.Snackbar snackbar = com.google.android.material.snackbar.Snackbar.make(rootView, "", com.google.android.material.snackbar.Snackbar.LENGTH_LONG);
-            @SuppressLint("RestrictedApi") com.google.android.material.snackbar.Snackbar.SnackbarLayout layout = (com.google.android.material.snackbar.Snackbar.SnackbarLayout) snackbar.getView();
-            android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
-            View customView = inflater.inflate(R.layout.snackbar_profile_saved, null);
-            android.widget.TextView text = customView.findViewById(R.id.snackbar_text);
-            text.setText("¡Perfil guardado!\nPodrás cambiar tu foto de perfil más adelante desde los ajustes.");
-            android.widget.ImageView icon = customView.findViewById(R.id.snackbar_icon);
-            icon.setImageResource(R.drawable.ic_profile);
-            layout.removeAllViews();
-            layout.addView(customView);
-            snackbar.show();
-            new android.os.Handler().postDelayed(() -> {
-                Intent intent = new Intent(ProfileSetupActivity.this, DashboardActivity.class);
-                startActivity(intent);
-                finish();
-            }, 5000); // 5 segundos de espera
+            Intent intent = new Intent(ProfileSetupActivity.this, DashboardActivity.class);
+            startActivity(intent);
+            finish();
         });
     }
 

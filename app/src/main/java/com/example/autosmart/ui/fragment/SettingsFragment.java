@@ -49,7 +49,6 @@ public class SettingsFragment extends Fragment {
     private EditText etUsername;
     private Spinner spinnerLanguage;
     private RadioGroup rgTheme;
-    private Switch switchMaint;
     private Button btnDeleteAccount;
     private Uri profileImageUri;
     private SharedPreferences prefs;
@@ -70,23 +69,11 @@ public class SettingsFragment extends Fragment {
         tvEditPhoto = root.findViewById(R.id.tvEditPhoto);
         etUsername = root.findViewById(R.id.etUsername);
         rgTheme = root.findViewById(R.id.rgTheme);
-        switchMaint = root.findViewById(R.id.switchMaint);
         btnDeleteAccount = root.findViewById(R.id.btnDeleteAccount);
 
         // Cargar nombre y foto guardados
-        AppDatabase db = AppDatabase.getInstance(requireContext());
-        UserEntity user = db.userDao().getUser();
-        if (user != null) {
-            String nombre;
-            try {
-                nombre = com.example.autosmart.utils.EncryptionUtils.decrypt(user.getName());
-            } catch (Exception e) {
-                nombre = user.getName();
-            }
-            etUsername.setText(nombre);
-        } else {
-            etUsername.setText("");
-        }
+        String savedName = prefs.getString("username", "");
+        etUsername.setText(savedName);
         String photoUri = prefs.getString("profile_photo", null);
         if (photoUri != null && !photoUri.isEmpty()) {
             if (photoUri.startsWith("http")) {
@@ -105,15 +92,6 @@ public class SettingsFragment extends Fragment {
         // Foto de perfil
         imgProfile.setOnClickListener(v -> showPhotoOptions());
         tvEditPhoto.setOnClickListener(v -> showPhotoOptions());
-
-        // Nombre editable
-        etUsername.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                String name = etUsername.getText().toString();
-                prefs.edit().putString("username", name).apply();
-                notifyProfileChanged();
-            }
-        });
 
         // Tema
         int currentTheme = prefs.getInt("theme", 0); // 0: light, 1: dark
@@ -137,27 +115,20 @@ public class SettingsFragment extends Fragment {
             prefs.edit().putInt("theme", theme).apply();
         });
 
-        // Notificaciones de mantenimiento
-        switchMaint.setChecked(prefs.getBoolean("notif_maint", false));
-        switchMaint.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            prefs.edit().putBoolean("notif_maint", isChecked).apply();
-            if (isChecked) {
-                // Solicitar permiso de notificaciones si no está concedido
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) 
-                            != PackageManager.PERMISSION_GRANTED) {
-                        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1003);
-                    }
-                }
-            }
-        });
-
         // Privacidad y acerca de
         root.findViewById(R.id.tvPrivacy).setOnClickListener(v -> {
-            // TODO: Abrir política de privacidad o pantalla de permisos
+            // Abrir política de privacidad en el navegador
+            String url = "https://www.privacypolicies.com/live/your-policy-url";
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+            startActivity(browserIntent);
         });
         root.findViewById(R.id.tvAbout).setOnClickListener(v -> {
-            // TODO: Mostrar información de la app
+            // Mostrar diálogo con información de la app
+            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Acerca de AutoSmart")
+                .setMessage("AutoSmart v1.0\n\nGestión inteligente de vehículos, mantenimientos y recordatorios.\n\nDesarrollado por Fatima.\n\nContacto: soporte@autosmart.com")
+                .setPositiveButton("OK", null)
+                .show();
         });
 
         // Eliminar cuenta
@@ -174,18 +145,31 @@ public class SettingsFragment extends Fragment {
             // Guardar nombre
             String name = etUsername.getText().toString();
             prefs.edit().putString("username", name).apply();
+
             // Guardar foto
+            String photoToSave = null;
             if (pendingPhotoUri != null) {
-                prefs.edit().putString("profile_photo", pendingPhotoUri).apply();
-                pendingPhotoUri = null;
+                photoToSave = pendingPhotoUri;
+            } else if (profileImageUri != null) {
+                photoToSave = profileImageUri.toString();
             }
+            if (photoToSave != null) {
+                prefs.edit().putString("profile_photo", photoToSave).apply();
+            }
+            pendingPhotoUri = null;
+
             // Guardar tema
             if (pendingTheme != -1) {
                 if (pendingTheme == 0) AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
                 else if (pendingTheme == 1) AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 pendingTheme = -1;
             }
+
             notifyProfileChanged();
+            // Cerrar el menú lateral si está abierto
+            if (getActivity() instanceof com.example.autosmart.ui.activity.DashboardActivity) {
+                ((com.example.autosmart.ui.activity.DashboardActivity) getActivity()).closeDrawer();
+            }
             Snackbar.make(requireView(), "Cambios guardados", Snackbar.LENGTH_LONG).show();
         });
     }

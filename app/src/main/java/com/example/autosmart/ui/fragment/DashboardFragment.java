@@ -5,7 +5,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
+import android.widget.ArrayAdapter;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -37,9 +40,11 @@ public class DashboardFragment extends Fragment {
     private UpcomingMaintenanceAdapter upcomingAdapter;
     private RecyclerView rvGlobalMaintenance;
     private GlobalMaintenanceAdapter globalAdapter;
-    private android.widget.Spinner spinnerHistoryVehicle;
+    private AutoCompleteTextView spinnerHistoryVehicle;
     private java.util.List<VehicleEntity> vehicleList = new java.util.ArrayList<>();
     private java.util.List<MaintenanceEntity> allMaintenances = new java.util.ArrayList<>();
+    private TextView emptyStateTextView;
+    private ArrayAdapter<String> vehicleAdapter;
 
     public DashboardFragment() {
         // Constructor vacío requerido
@@ -60,12 +65,25 @@ public class DashboardFragment extends Fragment {
         btnDiagnosis = view.findViewById(R.id.btnDiagnosis);
         btnMaintenance = view.findViewById(R.id.btnMaintenance);
         tvNoUpcoming = new TextView(getContext());
-        tvNoUpcoming.setText("No hay próximos mantenimientos");
+        tvNoUpcoming.setText("No hay próximo mantenimiento");
         tvNoUpcoming.setTextSize(16);
         tvNoUpcoming.setTextColor(getResources().getColor(R.color.purple_700));
         tvNoUpcoming.setPadding(32, 32, 32, 32);
         rvGlobalMaintenance = view.findViewById(R.id.rvGlobalMaintenance);
         spinnerHistoryVehicle = view.findViewById(R.id.spinnerHistoryVehicle);
+
+        // NUEVO: Inicializar el mensaje de estado vacío
+        emptyStateTextView = new TextView(getContext());
+        emptyStateTextView.setText("No hay mantenimientos registrados para este vehículo");
+        emptyStateTextView.setTextSize(16);
+        emptyStateTextView.setTextColor(getResources().getColor(R.color.purple_700));
+        emptyStateTextView.setGravity(android.view.Gravity.CENTER);
+        emptyStateTextView.setVisibility(View.GONE);
+        // Añadir el mensaje al layout si no está ya
+        ViewGroup parent = (ViewGroup) rvGlobalMaintenance.getParent();
+        if (emptyStateTextView.getParent() == null) {
+            parent.addView(emptyStateTextView, parent.indexOfChild(rvGlobalMaintenance) + 1);
+        }
 
         // Configurar RecyclerView
         rvUpcomingMaintenance.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -85,28 +103,23 @@ public class DashboardFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        // Recuperar el usuario de la base de datos local
-        AppDatabase db = AppDatabase.getInstance(requireContext());
-        UserEntity user = db.userDao().getUser();
-
-        if (user != null) {
-            // Forzar descifrado del nombre
-            String nombre;
-            try {
-                nombre = com.example.autosmart.utils.EncryptionUtils.decrypt(user.getName());
-            } catch (Exception e) {
-                nombre = user.getName();
-            }
-            tvGreeting.setText("Hola, " + nombre);
-        } else {
-            tvGreeting.setText("Hola, conductor");
-        }
-
+        updateGreeting();
         // Actualizar estadísticas
         updateStatistics();
         showNextMaintenance();
         updateGlobalMaintenance();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateGreeting();
+    }
+
+    private void updateGreeting() {
+        android.content.SharedPreferences prefs = requireContext().getSharedPreferences("user_prefs", android.content.Context.MODE_PRIVATE);
+        String name = prefs.getString("username", "conductor");
+        tvGreeting.setText("Hola, " + name);
     }
 
     private void setupButtonListeners() {
@@ -136,18 +149,16 @@ public class DashboardFragment extends Fragment {
         tvMaintenanceCount.setText(String.valueOf(maintenanceCount));
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        // Actualizar estadísticas cuando el fragmento se reanuda
-        updateStatistics();
-    }
-
     private void showNextMaintenance() {
-        // Obtener la fecha de hoy en formato yyyy-MM-dd
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        // Obtener el timestamp de hoy a las 00:00
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        long todayTimestamp = cal.getTimeInMillis();
         AppDatabase db = AppDatabase.getInstance(requireContext());
-        MaintenanceEntity next = db.maintenanceDao().getNextMaintenance(today);
+        MaintenanceEntity next = db.maintenanceDao().getNextMaintenance(todayTimestamp);
         if (next != null) {
             rvUpcomingMaintenance.setVisibility(View.VISIBLE);
             tvNoUpcoming.setVisibility(View.GONE);
@@ -159,63 +170,79 @@ public class DashboardFragment extends Fragment {
             if (tvNoUpcoming.getParent() == null) {
                 parent.addView(tvNoUpcoming, parent.indexOfChild(rvUpcomingMaintenance));
             }
-            tvNoUpcoming.setText("No hay próximos mantenimientos");
+            tvNoUpcoming.setText("No hay próximo mantenimiento");
             tvNoUpcoming.setVisibility(View.VISIBLE);
         }
     }
 
     private void setupHistoryVehicleSpinner() {
         AppDatabase db = AppDatabase.getInstance(requireContext());
-        UserEntity user = db.userDao().getUser();
-        if (user == null) return;
-        String userId = user.getFirebaseUid();
+        String userId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
         db.vehicleDao().loadAll(userId).observe(getViewLifecycleOwner(), vehicles -> {
             vehicleList = vehicles != null ? vehicles : new java.util.ArrayList<>();
+            Log.d("DASHBOARD", "Vehículos cargados: " + vehicleList.size());
             java.util.List<String> options = new java.util.ArrayList<>();
             options.add("Todos los vehículos");
             for (VehicleEntity v : vehicleList) {
-                options.add(v.getBrand() + " " + v.getModel() + " (" + v.getYear() + ")");
+                String label = v.getBrand() + " " + v.getModel() + " (" + v.getYear() + ")";
+                options.add(label);
             }
-            android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                    requireContext(), android.R.layout.simple_spinner_item, options);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinnerHistoryVehicle.setAdapter(adapter);
-            spinnerHistoryVehicle.setSelection(0);
+            Log.d("DASHBOARD", "Opciones en el spinner: " + options);
+            if (vehicleAdapter == null) {
+                vehicleAdapter = new ArrayAdapter<>(
+                        requireContext(), android.R.layout.simple_dropdown_item_1line, options);
+                spinnerHistoryVehicle.setAdapter(vehicleAdapter);
+            } else {
+                vehicleAdapter.clear();
+                vehicleAdapter.addAll(options);
+                vehicleAdapter.notifyDataSetChanged();
+            }
+            spinnerHistoryVehicle.setText(options.get(0), false);
         });
-        spinnerHistoryVehicle.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                filterHistoryByVehicle(position);
-            }
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        spinnerHistoryVehicle.setOnItemClickListener((parent, view, position, id) -> {
+            filterHistoryByVehicle(position);
         });
     }
 
     private void updateGlobalMaintenance() {
         AppDatabase db = AppDatabase.getInstance(requireContext());
-        UserEntity user = db.userDao().getUser();
-        if (user == null) return;
-        String userId = user.getFirebaseUid();
+        String userId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
         allMaintenances = db.maintenanceDao().getAllForUser(userId);
-        filterHistoryByVehicle(spinnerHistoryVehicle != null ? spinnerHistoryVehicle.getSelectedItemPosition() : 0);
+        Log.d("DASHBOARD", "Mantenimientos cargados: " + allMaintenances.size());
+        int pos = 0;
+        if (spinnerHistoryVehicle != null && vehicleAdapter != null) {
+            String selected = spinnerHistoryVehicle.getText().toString();
+            pos = vehicleAdapter.getPosition(selected);
+        }
+        filterHistoryByVehicle(pos);
     }
 
     private void filterHistoryByVehicle(int pos) {
+        java.util.List<MaintenanceEntity> filtered;
         if (pos == 0 || vehicleList == null || vehicleList.isEmpty()) {
-            globalAdapter.setItems(allMaintenances);
+            filtered = allMaintenances;
         } else if (pos > 0 && vehicleList.size() >= pos) {
             String selectedVehicleId = vehicleList.get(pos - 1).getId();
-            java.util.List<MaintenanceEntity> filtered = new java.util.ArrayList<>();
+            filtered = new java.util.ArrayList<>();
             for (MaintenanceEntity m : allMaintenances) {
                 if (m.vehicleId != null && m.vehicleId.equals(selectedVehicleId)) {
                     filtered.add(m);
                 }
             }
-            globalAdapter.setItems(filtered);
         } else {
-            globalAdapter.setItems(new java.util.ArrayList<>());
+            filtered = new java.util.ArrayList<>();
         }
+        Log.d("DASHBOARD", "Filtrando mantenimientos para pos=" + pos + ", encontrados: " + filtered.size());
+        globalAdapter.setItems(filtered);
+        // Mostrar/ocultar según si hay datos
+        if (filtered == null || filtered.isEmpty()) {
+            rvGlobalMaintenance.setVisibility(View.GONE);
+            emptyStateTextView.setVisibility(View.VISIBLE);
+        } else {
+            rvGlobalMaintenance.setVisibility(View.VISIBLE);
+            emptyStateTextView.setVisibility(View.GONE);
+        }
+        // El spinner siempre debe estar visible (ya está en el layout)
     }
 }
 
@@ -237,8 +264,10 @@ class UpcomingMaintenanceAdapter extends RecyclerView.Adapter<UpcomingMaintenanc
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         if (maintenance != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            String formattedDate = sdf.format(new Date(maintenance.date));
             holder.title.setText(maintenance.type + " - " + maintenance.vehiclePlate);
-            holder.subtitle.setText(maintenance.date + (maintenance.description != null && !maintenance.description.isEmpty() ? ("\n" + maintenance.description) : ""));
+            holder.subtitle.setText(formattedDate + (maintenance.description != null && !maintenance.description.isEmpty() ? ("\n" + maintenance.description) : ""));
         }
     }
 
@@ -275,11 +304,20 @@ class GlobalMaintenanceAdapter extends RecyclerView.Adapter<GlobalMaintenanceAda
         MaintenanceEntity m = items.get(pos);
         h.tvType.setText(m.type);
         h.tvMileage.setText(String.format("%d km", m.kilometraje));
-        h.tvDate.setText(m.date != null && m.date.length() >= 10 ? m.date.substring(0, 10) : m.date);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String formattedDate = sdf.format(new Date(m.date));
+        h.tvDate.setText(formattedDate);
         // Centrado y alineación
         h.tvType.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
         h.tvMileage.setGravity(android.view.Gravity.CENTER);
         h.tvDate.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.END);
+        // Elimina cualquier estilo especial para eliminados
+        h.tvType.setTextColor(android.graphics.Color.parseColor("#6A1B9A")); // purple_700
+        h.tvMileage.setTextColor(android.graphics.Color.parseColor("#6A1B9A"));
+        h.tvDate.setTextColor(android.graphics.Color.parseColor("#6A1B9A"));
+        h.tvType.setPaintFlags(h.tvType.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
+        h.tvMileage.setPaintFlags(h.tvMileage.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
+        h.tvDate.setPaintFlags(h.tvDate.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
         // Línea divisoria
         if (h.getAdapterPosition() < getItemCount() - 1) {
             h.itemView.setBackgroundResource(android.R.color.darker_gray);

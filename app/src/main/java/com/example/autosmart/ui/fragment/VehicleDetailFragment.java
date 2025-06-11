@@ -39,6 +39,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.example.autosmart.utils.EncryptionUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -171,7 +172,13 @@ public class VehicleDetailFragment extends Fragment {
                 Vehicle v = snap.getValue(Vehicle.class);
                 if (v == null) return;
                 tvBrandModel.setText(v.getBrand() + " " + v.getModel());
-                tvPlate     .setText(v.getPlate());
+                String plate;
+                try {
+                    plate = EncryptionUtils.decrypt(v.getPlate());
+                } catch (Exception e) {
+                    plate = v.getPlate();
+                }
+                tvPlate.setText(plate);
                 tvYear      .setText(v.getYear());
 
                 // Carga logo con Glide
